@@ -16,12 +16,12 @@ type PFCPClientEntity struct {
 	muAssociations sync.Mutex
 }
 
-func NewPFCPClientEntity(nodeID string) PFCPClientEntity {
+func NewPFCPClientEntity(nodeID string) *PFCPClientEntity {
 	e := PFCPClientEntity{PFCPEntity: NewPFCPEntity(nodeID),
 		associations:   make(map[string]*PFCPAssociation),
 		muAssociations: sync.Mutex{},
 	}
-	return e
+	return &e
 }
 
 // Add an association to the association table

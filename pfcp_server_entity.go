@@ -14,7 +14,7 @@ type PFCPServerEntity struct {
 	muAssociations sync.Mutex
 }
 
-func NewPFCPServerEntity(nodeID string) PFCPServerEntity {
+func NewPFCPServerEntity(nodeID string) *PFCPServerEntity {
 	e := PFCPServerEntity{PFCPEntity: NewPFCPEntity(nodeID),
 		associations:   make(map[string]*PFCPAssociation),
 		muAssociations: sync.Mutex{},
@@ -23,7 +23,7 @@ func NewPFCPServerEntity(nodeID string) PFCPServerEntity {
 	if err != nil {
 		log.Println(err)
 	}
-	return e
+	return &e
 }
 
 func (e *PFCPServerEntity) initDefaultHandlers() error {

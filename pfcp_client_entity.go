@@ -71,10 +71,7 @@ func (e *PFCPClientEntity) NewPFCPAssociation(peer *PFCPPeer) (association *PFCP
 	if _, exists := e.associations[nid]; exists {
 		return nil, fmt.Errorf("Only one association shall be setup between given pair of CP and UP functions.")
 	}
-	sar, err := message.NewAssociationSetupRequest(0, e.NodeID, e.RecoveryTimeStamp).Marshal()
-	if err != nil {
-		return nil, err
-	}
+	sar := message.NewAssociationSetupRequest(0, e.NodeID, e.RecoveryTimeStamp)
 	resp, err := peer.Send(sar)
 	if err != nil {
 		return nil, err

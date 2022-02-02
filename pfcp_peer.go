@@ -127,15 +127,23 @@ func (peer *PFCPPeer) deleteFromQueue(sn uint32) {
 }
 
 // Send a PFCP message
-func (peer *PFCPPeer) Send(msg []byte) (m message.Message, err error) {
+func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 	// timer
 	T1 := time.Millisecond * 500
 	// retries
 	N1 := 3
-	h, err := message.ParseHeader(msg)
+
+	//XXX: cannot use `h, err := msg.(*message.Header)` because Header does not implement MessageTypeName()
+	msgb := make([]byte, msg.MarshalLen())
+	err = msg.MarshalTo(msgb)
 	if err != nil {
 		return nil, err
 	}
+	h, err := message.ParseHeader(msgb)
+	if err != nil {
+		return nil, err
+	}
+
 	if !pfcputil.IsMessageTypeRequest(h.MessageType()) {
 		return nil, fmt.Errorf("Unexpected outcomming PFCP message type")
 	}
@@ -182,15 +190,12 @@ func (peer *PFCPPeer) IsAlive() (res bool, err error) {
 	if peer.Srv.RecoveryTimeStamp == nil {
 		return false, fmt.Errorf("SMF is not started.")
 	}
-	hbreq, err := message.NewHeartbeatRequest(
+	hreq := message.NewHeartbeatRequest(
 		0,
 		peer.Srv.RecoveryTimeStamp,
-		nil).Marshal()
-	if err != nil {
-		return false, err
-	}
+		nil)
 
-	_, err = peer.Send(hbreq)
+	_, err = peer.Send(hreq)
 	if err != nil {
 		return false, err
 	}

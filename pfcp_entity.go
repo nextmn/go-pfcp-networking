@@ -124,7 +124,7 @@ func (e *PFCPEntity) Start() error {
 }
 
 func (e *PFCPEntity) AddHandler(t pfcputil.MessageType, h handler) error {
-	if e.RecoveryTimeStamp != nil {
+	if e.RecoveryTimeStamp() != nil {
 		return fmt.Errorf("Cannot add handler to already started PFCP Entity")
 	}
 	if !pfcputil.IsMessageTypeRequest(t) {
@@ -135,7 +135,7 @@ func (e *PFCPEntity) AddHandler(t pfcputil.MessageType, h handler) error {
 }
 
 func (e *PFCPEntity) AddHandlers(funcs map[pfcputil.MessageType]handler) error {
-	if e.RecoveryTimeStamp != nil {
+	if e.RecoveryTimeStamp() != nil {
 		return fmt.Errorf("Cannot add handler to already started PFCP Entity")
 	}
 	for t, _ := range funcs {

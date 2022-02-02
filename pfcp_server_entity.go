@@ -35,6 +35,9 @@ func (e *PFCPServerEntity) AddServerHandler(t pfcputil.MessageType, h serverHand
 		if e == nil {
 			return fmt.Errorf("PFCPServerEntity is nil")
 		}
+		if e.RecoveryTimeStamp == nil {
+			return fmt.Errorf("RecoveryTimestamp is nil")
+		}
 		return h(e, senderAddr, msg)
 	}
 	return e.AddHandler(t, f)

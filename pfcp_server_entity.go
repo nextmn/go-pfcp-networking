@@ -1,11 +1,9 @@
 package pfcp_networking
 
 import (
-	"fmt"
 	"net"
 	"sync"
 
-	"github.com/louisroyer/go-pfcp-networking/pfcputil"
 	"github.com/wmnsk/go-pfcp/message"
 )
 
@@ -22,29 +20,17 @@ func NewPFCPServerEntity(nodeID string) PFCPServerEntity {
 		associations:   make(map[string]*PFCPAssociation),
 		muAssociations: sync.Mutex{},
 	}
+	e.iface = e
 	e.initDefaultHandlers()
 	return e
 }
 
 func (e *PFCPServerEntity) initDefaultHandlers() error {
-	return e.AddServerHandler(message.MsgTypeAssociationSetupRequest, handleAssociationSetupRequest)
-}
-
-func (e *PFCPServerEntity) AddServerHandler(t pfcputil.MessageType, h serverHandler) error {
-	f := func(entity *PFCPEntity, senderAddr net.Addr, msg message.Message) error {
-		if e == nil {
-			return fmt.Errorf("PFCPServerEntity is nil")
-		}
-		if e.RecoveryTimeStamp == nil {
-			return fmt.Errorf("RecoveryTimestamp is nil")
-		}
-		return h(e, senderAddr, msg)
-	}
-	return e.AddHandler(t, f)
+	return e.AddHandler(message.MsgTypeAssociationSetupRequest, handleAssociationSetupRequest)
 }
 
 // Add an association to the association table
-func (e *PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) error {
+func (e PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) error {
 	nid, err := association.NodeID.NodeID()
 	if err != nil {
 		return err
@@ -56,7 +42,7 @@ func (e *PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) e
 }
 
 // Remove an association from the association table
-func (e *PFCPServerEntity) RemovePFCPAssociation(association *PFCPAssociation) error {
+func (e PFCPServerEntity) RemovePFCPAssociation(association *PFCPAssociation) error {
 	nid, err := association.NodeID.NodeID()
 	if err != nil {
 		return err

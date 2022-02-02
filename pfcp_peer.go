@@ -15,7 +15,7 @@ type messageChan chan []byte
 
 type PFCPPeer struct {
 	NodeID  *ie.IE
-	Srv     *PFCPEntity
+	Srv     PFCPEntityInterface
 	conn    *net.UDPConn
 	udpAddr *net.UDPAddr
 	seq     uint32
@@ -24,7 +24,7 @@ type PFCPPeer struct {
 	stop    bool
 }
 
-func NewPFCPPeer(srv *PFCPEntity, nodeID *ie.IE) (peer *PFCPPeer, err error) {
+func NewPFCPPeer(srv PFCPEntityInterface, nodeID *ie.IE) (peer *PFCPPeer, err error) {
 	ipAddr, err := nodeID.NodeID()
 	if err != nil {
 		return nil, err
@@ -187,12 +187,12 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 
 // Send an Heartbeat request, return true if the PFCP peer is alive.
 func (peer *PFCPPeer) IsAlive() (res bool, err error) {
-	if peer.Srv.RecoveryTimeStamp == nil {
+	if peer.Srv.RecoveryTimeStamp() == nil {
 		return false, fmt.Errorf("SMF is not started.")
 	}
 	hreq := message.NewHeartbeatRequest(
 		0,
-		peer.Srv.RecoveryTimeStamp,
+		peer.Srv.RecoveryTimeStamp(),
 		nil)
 
 	_, err = peer.Send(hreq)

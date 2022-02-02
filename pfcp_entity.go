@@ -13,10 +13,14 @@ import (
 )
 
 type PFCPEntityInterface interface {
+	NodeID() *ie.IE
+	RecoveryTimeStamp() *ie.IE
+	CreatePFCPAssociation(association *PFCPAssociation) error
 	RemovePFCPAssociation(association *PFCPAssociation) error
+	ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error
 }
 
-func (entity *PFCPEntity) ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error {
+func (entity PFCPEntity) ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error {
 	if !pfcputil.IsMessageTypeRequest(requestMessage.MessageType()) {
 		return fmt.Errorf("requestMessage shall be a Request Message")
 	}
@@ -40,14 +44,22 @@ func (entity *PFCPEntity) ReplyTo(ipAddress net.Addr, requestMessage message.Mes
 	return nil
 }
 
-type handler = func(entity *PFCPEntity, senderAddr net.Addr, msg message.Message) error
+type handler = func(entity PFCPEntityInterface, senderAddr net.Addr, msg message.Message) error
 
 type PFCPEntity struct {
-	NodeID            *ie.IE
-	RecoveryTimeStamp *ie.IE
+	nodeID            *ie.IE
+	recoveryTimeStamp *ie.IE
 	handlers          map[pfcputil.MessageType]handler
 	conn              *net.UDPConn
 	mu                sync.Mutex
+	iface             PFCPEntityInterface
+}
+
+func (e PFCPEntity) NodeID() *ie.IE {
+	return e.nodeID
+}
+func (e PFCPEntity) RecoveryTimeStamp() *ie.IE {
+	return e.recoveryTimeStamp
 }
 
 func newDefaultPFCPEntityHandlers() map[pfcputil.MessageType]handler {
@@ -58,17 +70,21 @@ func newDefaultPFCPEntityHandlers() map[pfcputil.MessageType]handler {
 
 func NewPFCPEntity(nodeID string) PFCPEntity {
 	return PFCPEntity{
-		NodeID:            pfcputil.CreateNodeID(nodeID),
-		RecoveryTimeStamp: nil,
+		nodeID:            pfcputil.CreateNodeID(nodeID),
+		recoveryTimeStamp: nil,
 		handlers:          newDefaultPFCPEntityHandlers(),
 		conn:              nil,
 		mu:                sync.Mutex{},
+		iface:             nil,
 	}
 }
 
 func (e *PFCPEntity) Start() error {
-	e.RecoveryTimeStamp = ie.NewRecoveryTimeStamp(time.Now())
-	ipAddr, err := e.NodeID.NodeID()
+	if e.iface == nil {
+		return fmt.Errorf("PFCPEntity is incorrectly initialized")
+	}
+	e.recoveryTimeStamp = ie.NewRecoveryTimeStamp(time.Now())
+	ipAddr, err := e.NodeID().NodeID()
 	if err != nil {
 		return err
 	}
@@ -95,7 +111,7 @@ func (e *PFCPEntity) Start() error {
 				continue
 			}
 			if f, exists := e.handlers[msg.MessageType()]; exists {
-				err := f(e, addr, msg)
+				err := f(e.iface, addr, msg)
 				if err != nil {
 					log.Println(err)
 				}

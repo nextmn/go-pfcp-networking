@@ -20,11 +20,12 @@ func NewPFCPClientEntity(nodeID string) PFCPClientEntity {
 		associations:   make(map[string]*PFCPAssociation),
 		muAssociations: sync.Mutex{},
 	}
+	e.iface = e
 	return e
 }
 
 // Add an association to the association table
-func (e *PFCPClientEntity) createPFCPAssociation(association *PFCPAssociation) error {
+func (e PFCPClientEntity) CreatePFCPAssociation(association *PFCPAssociation) error {
 	nid, err := association.NodeID.NodeID()
 	if err != nil {
 		return err
@@ -36,7 +37,7 @@ func (e *PFCPClientEntity) createPFCPAssociation(association *PFCPAssociation) e
 }
 
 // Remove an association from the association table
-func (e *PFCPClientEntity) RemovePFCPAssociation(association *PFCPAssociation) error {
+func (e PFCPClientEntity) RemovePFCPAssociation(association *PFCPAssociation) error {
 	nid, err := association.NodeID.NodeID()
 	if err != nil {
 		return err
@@ -49,7 +50,7 @@ func (e *PFCPClientEntity) RemovePFCPAssociation(association *PFCPAssociation) e
 
 // Returns an existing PFCP Association
 func (e *PFCPClientEntity) GetPFCPAssociation(nodeID *ie.IE) (association *PFCPAssociation, err error) {
-	nid, err := e.NodeID.NodeID()
+	nid, err := e.NodeID().NodeID()
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +72,7 @@ func (e *PFCPClientEntity) NewPFCPAssociation(peer *PFCPPeer) (association *PFCP
 	if _, exists := e.associations[nid]; exists {
 		return nil, fmt.Errorf("Only one association shall be setup between given pair of CP and UP functions.")
 	}
-	sar := message.NewAssociationSetupRequest(0, e.NodeID, e.RecoveryTimeStamp)
+	sar := message.NewAssociationSetupRequest(0, e.NodeID(), e.RecoveryTimeStamp())
 	resp, err := peer.Send(sar)
 	if err != nil {
 		return nil, err
@@ -87,7 +88,7 @@ func (e *PFCPClientEntity) NewPFCPAssociation(peer *PFCPPeer) (association *PFCP
 	}
 	if cause == ie.CauseRequestAccepted {
 		a := &PFCPAssociation{PFCPPeer: peer, localEntity: e}
-		e.createPFCPAssociation(a)
+		e.CreatePFCPAssociation(a)
 		return a, nil
 	}
 	return nil, fmt.Errorf("Associaton setup request rejected")

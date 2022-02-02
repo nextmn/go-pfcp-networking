@@ -31,7 +31,7 @@ func (e *PFCPServerEntity) initDefaultHandlers() error {
 }
 
 // Add an association to the association table
-func (e PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) error {
+func (e *PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) error {
 	nid, err := association.NodeID.NodeID()
 	if err != nil {
 		return err
@@ -43,7 +43,7 @@ func (e PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) er
 }
 
 // Remove an association from the association table
-func (e PFCPServerEntity) RemovePFCPAssociation(association *PFCPAssociation) error {
+func (e *PFCPServerEntity) RemovePFCPAssociation(association *PFCPAssociation) error {
 	nid, err := association.NodeID.NodeID()
 	if err != nil {
 		return err

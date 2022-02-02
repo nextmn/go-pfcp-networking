@@ -25,7 +25,7 @@ func NewPFCPClientEntity(nodeID string) PFCPClientEntity {
 }
 
 // Add an association to the association table
-func (e PFCPClientEntity) CreatePFCPAssociation(association *PFCPAssociation) error {
+func (e *PFCPClientEntity) CreatePFCPAssociation(association *PFCPAssociation) error {
 	nid, err := association.NodeID.NodeID()
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func (e PFCPClientEntity) CreatePFCPAssociation(association *PFCPAssociation) er
 }
 
 // Remove an association from the association table
-func (e PFCPClientEntity) RemovePFCPAssociation(association *PFCPAssociation) error {
+func (e *PFCPClientEntity) RemovePFCPAssociation(association *PFCPAssociation) error {
 	nid, err := association.NodeID.NodeID()
 	if err != nil {
 		return err

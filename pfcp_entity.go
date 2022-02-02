@@ -20,7 +20,7 @@ type PFCPEntityInterface interface {
 	ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error
 }
 
-func (entity PFCPEntity) ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error {
+func (entity *PFCPEntity) ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error {
 	if !pfcputil.IsMessageTypeRequest(requestMessage.MessageType()) {
 		return fmt.Errorf("requestMessage shall be a Request Message")
 	}
@@ -55,10 +55,10 @@ type PFCPEntity struct {
 	iface             PFCPEntityInterface
 }
 
-func (e PFCPEntity) NodeID() *ie.IE {
+func (e *PFCPEntity) NodeID() *ie.IE {
 	return e.nodeID
 }
-func (e PFCPEntity) RecoveryTimeStamp() *ie.IE {
+func (e *PFCPEntity) RecoveryTimeStamp() *ie.IE {
 	return e.recoveryTimeStamp
 }
 

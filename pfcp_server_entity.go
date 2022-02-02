@@ -1,6 +1,7 @@
 package pfcp_networking
 
 import (
+	"fmt"
 	"net"
 	"sync"
 
@@ -31,6 +32,9 @@ func (e *PFCPServerEntity) initDefaultHandlers() error {
 
 func (e *PFCPServerEntity) AddServerHandler(t pfcputil.MessageType, h serverHandler) error {
 	f := func(entity *PFCPEntity, senderAddr net.Addr, msg message.Message) error {
+		if e == nil {
+			return fmt.Errorf("PFCPServerEntity is nil")
+		}
 		return h(e, senderAddr, msg)
 	}
 	return e.AddHandler(t, f)

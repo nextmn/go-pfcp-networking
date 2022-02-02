@@ -2,6 +2,7 @@ package pfcp_networking
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"sync"
 	"time"
@@ -94,7 +95,10 @@ func (e *PFCPEntity) Start() error {
 				continue
 			}
 			if f, exists := e.handlers[msg.MessageType()]; exists {
-				f(e, addr, msg)
+				err := f(e, addr, msg)
+				if err != nil {
+					log.Println(err)
+				}
 			}
 		}
 	}()

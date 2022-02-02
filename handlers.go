@@ -2,6 +2,7 @@ package pfcp_networking
 
 import (
 	"fmt"
+	"log"
 	"net"
 
 	"github.com/wmnsk/go-pfcp/ie"
@@ -26,6 +27,19 @@ func handleAssociationSetupRequest(srv *PFCPServerEntity, senderAddr net.Addr, m
 	err = srv.CreatePFCPAssociation(&association)
 	if err != nil {
 		return err
+	}
+	switch {
+	case msg == nil:
+		log.Println("msg is nil")
+		fallthrough
+	case srv == nil:
+		log.Println("srv is nil")
+		fallthrough
+	case srv.NodeID == nil:
+		log.Println("srv.NodeID is nil")
+		fallthrough
+	case srv.RecoveryTimeStamp == nil:
+		log.Println("srv.RecoveryTimeStamp is nil")
 	}
 	res := message.NewAssociationSetupResponse(msg.Sequence(), srv.NodeID, ie.NewCause(ie.CauseRequestAccepted), srv.RecoveryTimeStamp)
 	return srv.ReplyTo(senderAddr, msg, res)

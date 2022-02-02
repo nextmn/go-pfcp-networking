@@ -2,7 +2,6 @@ package pfcp_networking
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"sync"
 	"time"
@@ -52,7 +51,6 @@ type PFCPEntity struct {
 	handlers          map[pfcputil.MessageType]handler
 	conn              *net.UDPConn
 	mu                sync.Mutex
-	iface             PFCPEntityInterface
 }
 
 func (e *PFCPEntity) NodeID() *ie.IE {
@@ -75,14 +73,10 @@ func NewPFCPEntity(nodeID string) PFCPEntity {
 		handlers:          newDefaultPFCPEntityHandlers(),
 		conn:              nil,
 		mu:                sync.Mutex{},
-		iface:             nil,
 	}
 }
 
-func (e *PFCPEntity) Start() error {
-	if e.iface == nil {
-		return fmt.Errorf("PFCPEntity is incorrectly initialized")
-	}
+func (e *PFCPEntity) listen() error {
 	e.recoveryTimeStamp = ie.NewRecoveryTimeStamp(time.Now())
 	ipAddr, err := e.NodeID().NodeID()
 	if err != nil {
@@ -98,29 +92,14 @@ func (e *PFCPEntity) Start() error {
 		return err
 	}
 
-	buf := make([]byte, pfcputil.DEFAULT_MTU) // TODO: get MTU of interface instead of using DEFAULT_MTU
-	go func() error {
-		for {
-			n, addr, err := e.conn.ReadFrom(buf)
-			if err != nil {
-				return err
-			}
-			msg, err := message.Parse(buf[:n])
-			if err != nil {
-				// undecodable pfcp message
-				continue
-			}
-			if f, exists := e.handlers[msg.MessageType()]; exists {
-				err := f(e.iface, addr, msg)
-				if err != nil {
-					log.Println(err)
-				}
-			} else {
-				log.Println("Received unexpected PFCP message type")
-			}
-		}
-	}()
 	return nil
+}
+
+func (e *PFCPEntity) GetHandler(t pfcputil.MessageType) (h handler, err error) {
+	if f, exists := e.handlers[t]; exists {
+		return f, nil
+	}
+	return nil, fmt.Errorf("Received unexpected PFCP message type")
 }
 
 func (e *PFCPEntity) AddHandler(t pfcputil.MessageType, h handler) error {

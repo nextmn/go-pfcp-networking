@@ -188,7 +188,7 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 // Send an Heartbeat request, return true if the PFCP peer is alive.
 func (peer *PFCPPeer) IsAlive() (res bool, err error) {
 	if peer.Srv.RecoveryTimeStamp() == nil {
-		return false, fmt.Errorf("SMF is not started.")
+		return false, fmt.Errorf("PFCP server entity is not started.")
 	}
 	hreq := message.NewHeartbeatRequest(
 		0,

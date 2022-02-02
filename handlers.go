@@ -30,6 +30,19 @@ func handleAssociationSetupRequest(entity PFCPEntityInterface, senderAddr net.Ad
 	if err != nil {
 		return err
 	}
+	switch {
+	case msg == nil:
+		return fmt.Errorf("msg is nil")
+	case msg.Sequence == nil:
+		return fmt.Errorf("msg.Sequence is nil")
+	case entity == nil:
+		return fmt.Errorf("entity is nil")
+	case entity.NodeID() == nil:
+		return fmt.Errorf("entity.NodeID() is nil")
+	case entity.RecoveryTimeStamp() == nil:
+		return fmt.Errorf("entity.RecoveryTimeStamp() is nil")
+	}
+
 	res := message.NewAssociationSetupResponse(msg.Sequence(), entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), entity.RecoveryTimeStamp())
 	return entity.ReplyTo(senderAddr, msg, res)
 }

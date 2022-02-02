@@ -1,7 +1,6 @@
 package pfcp_networking
 
 import (
-	"net"
 	"sync"
 
 	"github.com/wmnsk/go-pfcp/message"
@@ -12,8 +11,6 @@ type PFCPServerEntity struct {
 	associations   map[string]*PFCPAssociation
 	muAssociations sync.Mutex
 }
-
-type serverHandler = func(serverEntity *PFCPServerEntity, senderAddr net.Addr, msg message.Message) error
 
 func NewPFCPServerEntity(nodeID string) PFCPServerEntity {
 	e := PFCPServerEntity{PFCPEntity: NewPFCPEntity(nodeID),

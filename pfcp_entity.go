@@ -115,6 +115,8 @@ func (e *PFCPEntity) Start() error {
 				if err != nil {
 					log.Println(err)
 				}
+			} else {
+				log.Println("Received unexpected PFCP message type")
 			}
 		}
 	}()

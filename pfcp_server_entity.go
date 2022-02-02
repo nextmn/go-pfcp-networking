@@ -17,7 +17,7 @@ func NewPFCPServerEntity(nodeID string) PFCPServerEntity {
 		associations:   make(map[string]*PFCPAssociation),
 		muAssociations: sync.Mutex{},
 	}
-	e.iface = e
+	e.iface = &e
 	e.initDefaultHandlers()
 	return e
 }

@@ -20,7 +20,7 @@ func NewPFCPClientEntity(nodeID string) PFCPClientEntity {
 		associations:   make(map[string]*PFCPAssociation),
 		muAssociations: sync.Mutex{},
 	}
-	e.iface = e
+	e.iface = &e
 	return e
 }
 

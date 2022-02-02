@@ -1,6 +1,7 @@
 package pfcp_networking
 
 import (
+	"log"
 	"sync"
 
 	"github.com/wmnsk/go-pfcp/message"
@@ -18,7 +19,10 @@ func NewPFCPServerEntity(nodeID string) PFCPServerEntity {
 		muAssociations: sync.Mutex{},
 	}
 	e.iface = &e
-	e.initDefaultHandlers()
+	err := e.initDefaultHandlers()
+	if err != nil {
+		log.Println(err)
+	}
 	return e
 }
 

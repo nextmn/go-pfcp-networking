@@ -11,6 +11,10 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
+type PFCPEntityInterface interface {
+	RemovePFCPAssociation(association *PFCPAssociation) error
+}
+
 func (entity *PFCPEntity) ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error {
 	if !pfcputil.IsMessageTypeRequest(requestMessage.MessageType()) {
 		return fmt.Errorf("requestMessage shall be a Request Message")

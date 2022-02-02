@@ -18,7 +18,12 @@ func handleAssociationSetupRequest(srv *PFCPServerEntity, senderAddr net.Addr, m
 	if !ok {
 		return fmt.Errorf("Issue with Association Setup Request")
 	}
-	err := srv.CreateAssociation(NewPFCPPeer(m.NodeID))
+	peer, err := NewPFCPPeer(&srv.PFCPEntity, m.NodeID)
+	if err != nil {
+		return err
+	}
+	association := NewAssociation(peer, srv)
+	err = srv.CreatePFCPAssociation(&association)
 	if err != nil {
 		return err
 	}

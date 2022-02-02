@@ -10,7 +10,7 @@ import (
 
 type PFCPServerEntity struct {
 	PFCPEntity
-	associations   map[string]PFCPPeer
+	associations   map[string]*PFCPAssociation
 	muAssociations sync.Mutex
 }
 
@@ -18,7 +18,7 @@ type serverHandler = func(serverEntity *PFCPServerEntity, senderAddr net.Addr, m
 
 func NewPFCPServerEntity(nodeID string) PFCPServerEntity {
 	e := PFCPServerEntity{PFCPEntity: NewPFCPEntity(nodeID),
-		associations:   make(map[string]PFCPPeer),
+		associations:   make(map[string]*PFCPAssociation),
 		muAssociations: sync.Mutex{},
 	}
 	e.initDefaultHandlers()
@@ -36,13 +36,26 @@ func (e *PFCPServerEntity) AddServerHandler(t pfcputil.MessageType, h serverHand
 	return e.AddHandler(t, f)
 }
 
-func (e *PFCPServerEntity) CreateAssociation(peer PFCPPeer) error {
-	e.muAssociations.Lock()
-	nid, err := peer.NodeID.NodeID()
+// Add an association to the association table
+func (e *PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) error {
+	nid, err := association.NodeID.NodeID()
 	if err != nil {
 		return err
 	}
-	e.associations[nid] = peer
+	e.muAssociations.Lock()
+	e.associations[nid] = association
+	e.muAssociations.Unlock()
+	return nil
+}
+
+// Remove an association from the association table
+func (e *PFCPServerEntity) RemovePFCPAssociation(association *PFCPAssociation) error {
+	nid, err := association.NodeID.NodeID()
+	if err != nil {
+		return err
+	}
+	e.muAssociations.Lock()
+	delete(e.associations, nid)
 	e.muAssociations.Unlock()
 	return nil
 }

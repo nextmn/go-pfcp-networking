@@ -10,7 +10,7 @@ type PFCPAssociation struct {
 	localEntity PFCPEntityInterface
 }
 
-func NewAssociation(peer *PFCPPeer, localEntity PFCPEntityInterface) PFCPAssociation {
+func NewPFCPAssociation(peer *PFCPPeer, localEntity PFCPEntityInterface) PFCPAssociation {
 	association := PFCPAssociation{PFCPPeer: peer, localEntity: localEntity}
 	go association.heartMonitoring()
 	return association

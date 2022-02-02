@@ -25,7 +25,7 @@ func handleAssociationSetupRequest(entity PFCPEntityInterface, senderAddr net.Ad
 	if err != nil {
 		return err
 	}
-	association := NewAssociation(peer, entity)
+	association := NewPFCPAssociation(peer, entity)
 	err = entity.CreatePFCPAssociation(&association)
 	if err != nil {
 		return err

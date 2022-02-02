@@ -87,9 +87,9 @@ func (e *PFCPClientEntity) NewPFCPAssociation(peer *PFCPPeer) (association *PFCP
 		return nil, err
 	}
 	if cause == ie.CauseRequestAccepted {
-		a := &PFCPAssociation{PFCPPeer: peer, localEntity: e}
-		e.CreatePFCPAssociation(a)
-		return a, nil
+		a := NewPFCPAssociation(peer, e)
+		e.CreatePFCPAssociation(&a)
+		return &a, nil
 	}
 	return nil, fmt.Errorf("Associaton setup request rejected")
 }

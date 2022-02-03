@@ -102,3 +102,14 @@ func (e *PFCPServerEntity) Start() error {
 	}()
 	return nil
 }
+
+func (e *PFCPServerEntity) GetPFCPSessions() []*PFCPSession {
+	sessions := make([]*PFCPSession, 0)
+	for _, a := range e.associations {
+		as := a.GetSessions()
+		for _, s := range as {
+			sessions = append(sessions, s)
+		}
+	}
+	return sessions
+}

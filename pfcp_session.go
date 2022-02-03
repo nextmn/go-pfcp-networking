@@ -11,8 +11,6 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-const MAX_PDR = 1024
-
 type PFCPSession struct {
 	fseid     *ie.IE
 	rseid     uint64
@@ -28,7 +26,7 @@ func NewPFCPSession(fseid *ie.IE, rseid uint64) PFCPSession {
 		rseid:     rseid, // SEID present in FSEID ie send by remote peer
 		pdr:       make(map[uint16]*pfcprule.PDR),
 		far:       make(map[uint32]*pfcprule.FAR),
-		sortedPDR: make(pfcprule.PDRs, MAX_PDR),
+		sortedPDR: make(pfcprule.PDRs, 0),
 		mu:        sync.Mutex{},
 	}
 }

@@ -10,6 +10,28 @@ type PDR struct {
 	outerHeaderRemoval *ie.IE
 }
 
+type PDRs []*PDR
+
+func (pdrs PDRs) Less(i, j int) bool {
+	// element with highest precedence (lowest value in Precedence IE) should be sorted first
+	pi, err := pdrs[i].precedence.Precedence()
+	if err != nil {
+		return false
+	}
+	pj, err := pdrs[j].precedence.Precedence()
+	if err != nil {
+		return true
+	}
+	return pi < pj
+}
+
+func (pdrs PDRs) Len() int {
+	return len(pdrs)
+}
+func (pdrs PDRs) Swap(i, j int) {
+	pdrs[i], pdrs[j] = pdrs[j], pdrs[i]
+}
+
 func (pdr *PDR) ID() (uint16, error) {
 	return pdr.id.PDRID()
 }

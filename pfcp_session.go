@@ -1,26 +1,35 @@
 package pfcp_networking
 
 import (
+	"fmt"
 	"log"
+	"sort"
+	"sync"
 
 	pfcprule "github.com/louisroyer/go-pfcp-networking/pfcprules"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
 
+const MAX_PDR = 1024
+
 type PFCPSession struct {
-	fseid *ie.IE
-	rseid uint64
-	pdr   map[uint16]*pfcprule.PDR
-	far   map[uint32]*pfcprule.FAR
+	fseid     *ie.IE
+	rseid     uint64
+	pdr       map[uint16]*pfcprule.PDR
+	far       map[uint32]*pfcprule.FAR
+	sortedPDR pfcprule.PDRs
+	mu        sync.Mutex
 }
 
 func NewPFCPSession(fseid *ie.IE, rseid uint64) PFCPSession {
 	return PFCPSession{
-		fseid: fseid, // local F-SEID
-		rseid: rseid, // SEID present in FSEID ie send by remote peer
-		pdr:   make(map[uint16]*pfcprule.PDR),
-		far:   make(map[uint32]*pfcprule.FAR),
+		fseid:     fseid, // local F-SEID
+		rseid:     rseid, // SEID present in FSEID ie send by remote peer
+		pdr:       make(map[uint16]*pfcprule.PDR),
+		far:       make(map[uint32]*pfcprule.FAR),
+		sortedPDR: make(pfcprule.PDRs, MAX_PDR),
+		mu:        sync.Mutex{},
 	}
 }
 
@@ -32,15 +41,33 @@ func (s *PFCPSession) FSEID() *ie.IE {
 	return s.fseid
 }
 
+func (s *PFCPSession) GetPDRs() pfcprule.PDRs {
+	return s.sortedPDR
+}
+
+func (s *PFCPSession) GetFAR(farid uint32) (*pfcprule.FAR, error) {
+	if far, ok := s.far[farid]; ok {
+		return far, nil
+	}
+	return nil, fmt.Errorf("No far with id", farid)
+}
+
 func (s *PFCPSession) AddPDRs(pdrs map[uint16]*pfcprule.PDR) {
+	s.mu.Lock()
 	for id, pdr := range pdrs {
 		s.pdr[id] = pdr
+		s.sortedPDR = append(s.sortedPDR, pdr)
 	}
+	sort.Sort(s.sortedPDR)
+	s.mu.Unlock()
+
 }
 func (s *PFCPSession) AddFARs(fars map[uint32]*pfcprule.FAR) {
+	s.mu.Lock()
 	for id, far := range fars {
 		s.far[id] = far
 	}
+	s.mu.Unlock()
 }
 
 type RemotePFCPSession struct {

@@ -1,10 +1,12 @@
 package pfcp_networking
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
 	"github.com/louisroyer/go-pfcp-networking/pfcputil"
+	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
 
@@ -27,7 +29,13 @@ func NewPFCPServerEntity(nodeID string) *PFCPServerEntity {
 }
 
 func (e *PFCPServerEntity) initDefaultHandlers() error {
-	return e.AddHandler(message.MsgTypeAssociationSetupRequest, handleAssociationSetupRequest)
+	if err := e.AddHandler(message.MsgTypeAssociationSetupRequest, handleAssociationSetupRequest); err != nil {
+		return err
+	}
+	if err := e.AddHandler(message.MsgTypeSessionEstablishmentRequest, handleSessionEstablishmentRequest); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Add an association to the association table
@@ -40,6 +48,18 @@ func (e *PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) e
 	e.associations[nid] = association
 	e.muAssociations.Unlock()
 	return nil
+}
+
+// Returns an existing PFCP Association
+func (e *PFCPServerEntity) GetPFCPAssociation(nodeID *ie.IE) (association *PFCPAssociation, err error) {
+	nid, err := e.NodeID().NodeID()
+	if err != nil {
+		return nil, err
+	}
+	if a, exists := e.associations[nid]; exists {
+		return a, nil
+	}
+	return nil, fmt.Errorf("Association does not exist.")
 }
 
 // Remove an association from the association table

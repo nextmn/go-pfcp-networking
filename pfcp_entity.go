@@ -16,6 +16,7 @@ type PFCPEntityInterface interface {
 	RecoveryTimeStamp() *ie.IE
 	CreatePFCPAssociation(association *PFCPAssociation) error
 	RemovePFCPAssociation(association *PFCPAssociation) error
+	GetPFCPAssociation(nodeID *ie.IE) (association *PFCPAssociation, err error)
 	ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error
 }
 

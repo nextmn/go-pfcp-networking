@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 
+	pfcprule "github.com/louisroyer/go-pfcp-networking/pfcprules"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -44,5 +45,33 @@ func handleAssociationSetupRequest(entity PFCPEntityInterface, senderAddr net.Ad
 	}
 
 	res := message.NewAssociationSetupResponse(msg.Sequence(), entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), entity.RecoveryTimeStamp())
+	return entity.ReplyTo(senderAddr, msg, res)
+}
+
+func handleSessionEstablishmentRequest(entity PFCPEntityInterface, senderAddr net.Addr, msg message.Message) error {
+	log.Println("Received Session Establishment Request")
+	m, ok := msg.(*message.SessionEstablishmentRequest)
+	if !ok {
+		return fmt.Errorf("Issue with Session Establishment Request")
+	}
+	association, err := entity.GetPFCPAssociation(m.NodeID)
+	fseid, err := m.CPFSEID.FSEID()
+	if err != nil {
+		return err
+	}
+	rseid := fseid.SEID
+	if err != nil {
+		return err
+	}
+	pdrs, err := pfcprule.NewPDRs(m.CreatePDR)
+	if err != nil {
+		return err
+	}
+	fars, err := pfcprule.NewFARs(m.CreateFAR)
+	if err != nil {
+		return err
+	}
+	session, err := association.CreateSession(rseid, pdrs, fars)
+	res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), session.FSEID())
 	return entity.ReplyTo(senderAddr, msg, res)
 }

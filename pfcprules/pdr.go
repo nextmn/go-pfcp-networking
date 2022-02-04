@@ -10,6 +10,16 @@ type PDR struct {
 	outerHeaderRemoval *ie.IE
 }
 
+func NewPDR(id *ie.IE, pdi *ie.IE, precedence *ie.IE, farid *ie.IE, outerHeaderRemoval *ie.IE) *PDR {
+	return &PDR{
+		id:                 id,
+		pdi:                pdi,
+		precedence:         precedence,
+		farid:              farid,
+		outerHeaderRemoval: outerHeaderRemoval,
+	}
+}
+
 type PDRs []*PDR
 
 func (pdrs PDRs) Less(i, j int) bool {
@@ -88,9 +98,11 @@ func NewPDRs(pdrs []*ie.IE) ([]*PDR, error) {
 		if err != nil {
 			return nil, err
 		}
-		ohr, err := pdr.OuterHeaderRemoval()
-		if err != nil {
-			return nil, err
+
+		// conditional IE
+		var ohrIE *ie.IE
+		if ohr, err := pdr.OuterHeaderRemoval(); err == nil {
+			ohrIE = ie.NewOuterHeaderRemoval(ohr[0], ohr[1])
 		}
 
 		p = append(p,
@@ -99,7 +111,7 @@ func NewPDRs(pdrs []*ie.IE) ([]*PDR, error) {
 				ie.NewPDI(pdi...),
 				ie.NewPrecedence(precedence),
 				ie.NewFARID(farid),
-				ie.NewOuterHeaderRemoval(ohr[0], ohr[1]),
+				ohrIE,
 			})
 	}
 	return p, nil

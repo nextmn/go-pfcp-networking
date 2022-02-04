@@ -16,8 +16,8 @@ func (far *FAR) ApplyAction() *ie.IE {
 	return far.applyAction
 }
 
-func NewFAR(id *ie.IE, applyAction *ie.IE, forwardingParameters *ie.IE) FAR {
-	return FAR{
+func NewFAR(id *ie.IE, applyAction *ie.IE, forwardingParameters *ie.IE) *FAR {
+	return &FAR{
 		id:                   id,
 		applyAction:          applyAction,
 		forwardingParameters: forwardingParameters,

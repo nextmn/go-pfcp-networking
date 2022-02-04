@@ -128,10 +128,6 @@ func (peer *PFCPPeer) deleteFromQueue(sn uint32) {
 
 // Send a PFCP message
 func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
-	// timer
-	T1 := time.Millisecond * 500
-	// retries
-	N1 := 3
 
 	//XXX: cannot use `h, err := msg.(*message.Header)` because Header does not implement MessageTypeName()
 	msgb := make([]byte, msg.MarshalLen())
@@ -163,7 +159,7 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 		return nil, fmt.Errorf("Error on write: %s\n", err)
 	}
 
-	for i := 0; i < N1; i++ {
+	for i := 0; i < pfcputil.MESSAGE_RETRANSMISSION_N1; i++ {
 		select {
 		case r := <-ch:
 			msg, err := message.Parse(r)
@@ -174,7 +170,7 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 				return nil, fmt.Errorf("Unexpected incomming PFCP message type")
 			}
 			return msg, nil
-		case <-time.After(T1):
+		case <-time.After(pfcputil.MESSAGE_RETRANSMISSION_T1):
 			// retry
 			_, err = peer.conn.WriteToUDP(b, peer.udpAddr)
 			if err != nil {

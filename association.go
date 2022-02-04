@@ -12,32 +12,25 @@ import (
 
 type PFCPAssociation struct {
 	*PFCPPeer
-	localEntity         PFCPEntityInterface
-	sessions            map[uint64]*PFCPSession
-	remoteSessions      map[uint64]*RemotePFCPSession
-	nextRemoteSessionID uint64
-	mu                  sync.Mutex
+	localEntity    PFCPEntityInterface
+	sessions       map[uint64]*PFCPSession
+	remoteSessions map[uint64]*RemotePFCPSession
+	mu             sync.Mutex
 }
 
 func NewPFCPAssociation(peer *PFCPPeer, localEntity PFCPEntityInterface) PFCPAssociation {
 	association := PFCPAssociation{
-		PFCPPeer:            peer,
-		localEntity:         localEntity,
-		sessions:            make(map[uint64]*PFCPSession),
-		remoteSessions:      make(map[uint64]*RemotePFCPSession),
-		nextRemoteSessionID: 1,
-		mu:                  sync.Mutex{},
+		PFCPPeer:       peer,
+		localEntity:    localEntity,
+		sessions:       make(map[uint64]*PFCPSession),
+		remoteSessions: make(map[uint64]*RemotePFCPSession),
 	}
 	go association.heartMonitoring()
 	return association
 }
 
 func (association *PFCPAssociation) getNextRemoteSessionID() uint64 {
-	association.mu.Lock()
-	id := association.nextRemoteSessionID
-	association.nextRemoteSessionID = id + 1
-	association.mu.Unlock()
-	return id
+	return association.localEntity.GetNextRemoteSessionID()
 }
 
 // Start monitoring heart of a PFCP Association

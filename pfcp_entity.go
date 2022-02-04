@@ -18,6 +18,7 @@ type PFCPEntityInterface interface {
 	RemovePFCPAssociation(association *PFCPAssociation) error
 	GetPFCPAssociation(nodeID *ie.IE) (association *PFCPAssociation, err error)
 	ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error
+	GetNextRemoteSessionID() uint64
 }
 
 func (entity *PFCPEntity) ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error {
@@ -47,11 +48,21 @@ func (entity *PFCPEntity) ReplyTo(ipAddress net.Addr, requestMessage message.Mes
 type handler = func(entity PFCPEntityInterface, senderAddr net.Addr, msg message.Message) error
 
 type PFCPEntity struct {
-	nodeID            *ie.IE
-	recoveryTimeStamp *ie.IE
-	handlers          map[pfcputil.MessageType]handler
-	conn              *net.UDPConn
-	mu                sync.Mutex
+	nodeID              *ie.IE
+	recoveryTimeStamp   *ie.IE
+	handlers            map[pfcputil.MessageType]handler
+	conn                *net.UDPConn
+	mu                  sync.Mutex
+	nextRemoteSessionID uint64
+	muSessionID         sync.Mutex
+}
+
+func (e *PFCPEntity) GetNextRemoteSessionID() uint64 {
+	e.mu.Lock()
+	id := e.nextRemoteSessionID
+	e.nextRemoteSessionID = id + 1
+	e.mu.Unlock()
+	return id
 }
 
 func (e *PFCPEntity) NodeID() *ie.IE {
@@ -69,11 +80,13 @@ func newDefaultPFCPEntityHandlers() map[pfcputil.MessageType]handler {
 
 func NewPFCPEntity(nodeID string) PFCPEntity {
 	return PFCPEntity{
-		nodeID:            pfcputil.CreateNodeID(nodeID),
-		recoveryTimeStamp: nil,
-		handlers:          newDefaultPFCPEntityHandlers(),
-		conn:              nil,
-		mu:                sync.Mutex{},
+		nodeID:              pfcputil.CreateNodeID(nodeID),
+		recoveryTimeStamp:   nil,
+		handlers:            newDefaultPFCPEntityHandlers(),
+		conn:                nil,
+		mu:                  sync.Mutex{},
+		nextRemoteSessionID: 1,
+		muSessionID:         sync.Mutex{},
 	}
 }
 

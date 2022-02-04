@@ -31,6 +31,14 @@ func NewPFCPSession(fseid *ie.IE, rseid uint64) PFCPSession {
 	}
 }
 
+func (s *PFCPSession) SEID() (uint64, error) {
+	fseid, err := s.fseid.FSEID()
+	if err != nil {
+		return 0, err
+	}
+	return fseid.SEID, nil
+}
+
 func (s *PFCPSession) RSEID() uint64 {
 	return s.rseid
 }

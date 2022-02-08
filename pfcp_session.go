@@ -106,11 +106,15 @@ func (s *RemotePFCPSession) Start(pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) er
 		}
 		tmpFAR[id] = far
 	}
-	ies := make([]*ie.IE, 2+len(pdrs)+len(fars))
+	ies := make([]*ie.IE, 0)
 	ies = append(ies, s.association.NodeID)
 	ies = append(ies, s.fseid)
-	copy(ies[2:], pfcprule.NewCreatePDRs(pdrs)[:])
-	copy(ies[len(pdrs):], pfcprule.NewCreateFARs(fars)[:])
+	for _, pdr := range pfcprule.NewCreatePDRs(pdrs) {
+		ies = append(ies, pdr)
+	}
+	for _, far := range pfcprule.NewCreateFARs(fars) {
+		ies = append(ies, far)
+	}
 
 	msg := message.NewSessionEstablishmentRequest(0, 0, 0, 0, 0, ies...)
 	resp, err := s.association.Send(msg)

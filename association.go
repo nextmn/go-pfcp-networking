@@ -30,6 +30,9 @@ func NewPFCPAssociation(peer *PFCPPeer, localEntity PFCPEntityInterface) PFCPAss
 }
 
 func (association *PFCPAssociation) getNextRemoteSessionID() uint64 {
+	if association.localEntity == nil {
+		fmt.Println("association.localEntity is nil!")
+	}
 	return association.localEntity.GetNextRemoteSessionID()
 }
 

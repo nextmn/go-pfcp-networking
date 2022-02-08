@@ -55,6 +55,10 @@ func handleSessionEstablishmentRequest(entity PFCPEntityInterface, senderAddr ne
 		return fmt.Errorf("Issue with Session Establishment Request")
 	}
 	association, err := entity.GetPFCPAssociation(m.NodeID)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
 	fseid, err := m.CPFSEID.FSEID()
 	if err != nil {
 		return err

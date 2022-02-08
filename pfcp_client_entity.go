@@ -87,7 +87,7 @@ func (e *PFCPClientEntity) NewPFCPAssociation(peer *PFCPPeer) (association *PFCP
 		return nil, err
 	}
 	if cause == ie.CauseRequestAccepted {
-		a := NewPFCPAssociation(peer, e)
+		a := NewPFCPAssociation(peer)
 		e.CreatePFCPAssociation(&a)
 		return &a, nil
 	}

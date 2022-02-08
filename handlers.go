@@ -26,7 +26,7 @@ func handleAssociationSetupRequest(entity PFCPEntityInterface, senderAddr net.Ad
 	if err != nil {
 		return err
 	}
-	association := NewPFCPAssociation(peer, entity)
+	association := NewPFCPAssociation(peer)
 	err = entity.CreatePFCPAssociation(&association)
 	if err != nil {
 		return err
@@ -71,7 +71,7 @@ func handleSessionEstablishmentRequest(entity PFCPEntityInterface, senderAddr ne
 	if err != nil {
 		return err
 	}
-	session, err := association.CreateSession(rseid, pdrs, fars)
+	session, err := association.CreateSession(entity.GetNextRemoteSessionID(), rseid, pdrs, fars)
 	res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), session.FSEID())
 	return entity.ReplyTo(senderAddr, msg, res)
 }

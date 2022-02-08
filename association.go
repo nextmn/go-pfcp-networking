@@ -12,28 +12,19 @@ import (
 
 type PFCPAssociation struct {
 	*PFCPPeer
-	localEntity    PFCPEntityInterface
 	sessions       map[uint64]*PFCPSession
 	remoteSessions map[uint64]*RemotePFCPSession
 	mu             sync.Mutex
 }
 
-func NewPFCPAssociation(peer *PFCPPeer, localEntity PFCPEntityInterface) PFCPAssociation {
+func NewPFCPAssociation(peer *PFCPPeer) PFCPAssociation {
 	association := PFCPAssociation{
 		PFCPPeer:       peer,
-		localEntity:    localEntity,
 		sessions:       make(map[uint64]*PFCPSession),
 		remoteSessions: make(map[uint64]*RemotePFCPSession),
 	}
 	go association.heartMonitoring()
 	return association
-}
-
-func (association *PFCPAssociation) getNextRemoteSessionID() uint64 {
-	if &(association.localEntity) == nil {
-		fmt.Println("Nil pointer")
-	}
-	return association.localEntity.GetNextRemoteSessionID()
 }
 
 // Start monitoring heart of a PFCP Association
@@ -54,18 +45,11 @@ func (association *PFCPAssociation) heartMonitoring() error {
 	}
 }
 
-// Close the association
-func (association *PFCPAssociation) CloseAssociation() {
-	association.Close()
-	association.localEntity.RemovePFCPAssociation(association)
-}
-
 func (association *PFCPAssociation) GetSessions() map[uint64]*PFCPSession {
 	return association.sessions
 }
 
-func (association *PFCPAssociation) getFSEID() (*ie.IE, error) {
-	seid := association.getNextRemoteSessionID()
+func (association *PFCPAssociation) getFSEID(seid uint64) (*ie.IE, error) {
 	ieNodeID := association.Srv.NodeID()
 	nodeID, err := ieNodeID.NodeID()
 	if err != nil {
@@ -101,8 +85,8 @@ func (association *PFCPAssociation) getFSEID() (*ie.IE, error) {
 	}
 	return localFseid, nil
 }
-func (association *PFCPAssociation) CreateSession(rseid uint64, pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session *PFCPSession, err error) {
-	localFseid, err := association.getFSEID()
+func (association *PFCPAssociation) CreateSession(seid, rseid uint64, pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session *PFCPSession, err error) {
+	localFseid, err := association.getFSEID(seid)
 	if err != nil {
 		return nil, err
 	}
@@ -131,8 +115,8 @@ func (association *PFCPAssociation) CreateSession(rseid uint64, pdrs []*pfcprule
 	return &s, nil
 }
 
-func (association *PFCPAssociation) NewPFCPSession(pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session *RemotePFCPSession, err error) {
-	localFseid, err := association.getFSEID()
+func (association *PFCPAssociation) NewPFCPSession(seid uint64, pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session *RemotePFCPSession, err error) {
+	localFseid, err := association.getFSEID(seid)
 	if err != nil {
 		return nil, err
 	}

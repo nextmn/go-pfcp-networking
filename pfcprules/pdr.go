@@ -62,13 +62,17 @@ func (pdr *PDR) OuterHeaderRemoval() *ie.IE {
 }
 
 func (pdr *PDR) NewCreatePDR() *ie.IE {
-	return ie.NewCreatePDR(
-		pdr.id,
-		pdr.precedence,
-		pdr.pdi,
-		pdr.outerHeaderRemoval,
-		pdr.farid,
-	)
+	ies := make([]*ie.IE, 0)
+	ies = append(ies, pdr.id)
+	ies = append(ies, pdr.precedence)
+	ies = append(ies, pdr.pdi)
+	if pdr.outerHeaderRemoval != nil {
+		ies = append(ies, pdr.outerHeaderRemoval)
+	}
+	if pdr.farid != nil {
+		ies = append(ies, pdr.farid)
+	}
+	return ie.NewCreatePDR(ies...)
 }
 
 func NewCreatePDRs(pdrs []*PDR) []*ie.IE {

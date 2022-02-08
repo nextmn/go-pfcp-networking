@@ -29,11 +29,13 @@ func (far *FAR) ForwardingParameters() ([]*ie.IE, error) {
 }
 
 func (far *FAR) NewCreateFAR() *ie.IE {
-	return ie.NewCreatePDR(
-		far.id,
-		far.applyAction,
-		far.forwardingParameters,
-	)
+	ies := make([]*ie.IE, 0)
+	ies = append(ies, far.id)
+	ies = append(ies, far.applyAction)
+	if far.forwardingParameters != nil {
+		ies = append(ies, far.forwardingParameters)
+	}
+	return ie.NewCreateFAR(ies...)
 }
 
 func NewCreateFARs(fars []*FAR) []*ie.IE {

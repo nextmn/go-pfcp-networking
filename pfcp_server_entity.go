@@ -53,7 +53,7 @@ func (e *PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) e
 
 // Returns an existing PFCP Association
 func (e *PFCPServerEntity) GetPFCPAssociation(nodeID *ie.IE) (association *PFCPAssociation, err error) {
-	nid, err := e.NodeID().NodeID()
+	nid, err := nodeID.NodeID()
 	if err != nil {
 		return nil, err
 	}

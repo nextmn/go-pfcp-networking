@@ -22,7 +22,7 @@ func handleAssociationSetupRequest(entity PFCPEntityInterface, senderAddr net.Ad
 	if !ok {
 		return fmt.Errorf("Issue with Association Setup Request")
 	}
-	peer, err := NewPFCPPeer(entity, m.NodeID)
+	peer, err := NewPFCPPeer(entity.GetPFCPEntity(), m.NodeID)
 	if err != nil {
 		return err
 	}

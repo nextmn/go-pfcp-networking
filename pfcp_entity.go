@@ -58,6 +58,7 @@ type PFCPEntity struct {
 }
 
 func (e *PFCPEntity) GetNextRemoteSessionID() uint64 {
+	fmt.Println("Entering GetNextRemoteSessionID of pfcp_entity")
 	e.muSessionID.Lock()
 	id := e.nextRemoteSessionID
 	e.nextRemoteSessionID = id + 1

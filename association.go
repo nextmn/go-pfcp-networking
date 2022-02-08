@@ -31,6 +31,9 @@ func NewPFCPAssociation(peer *PFCPPeer, localEntity PFCPEntityInterface) PFCPAss
 
 func (association *PFCPAssociation) getNextRemoteSessionID() uint64 {
 	fmt.Println("Calling get Next Remote Session ID")
+	if association.localEntity.GetNextRemoteSessionID == nil {
+		fmt.Println("Function is nil ?!")
+	}
 	id := association.localEntity.GetNextRemoteSessionID()
 	fmt.Println("Next Remote Session ID is ", id)
 	return id

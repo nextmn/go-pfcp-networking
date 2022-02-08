@@ -76,7 +76,7 @@ func (pdr *PDR) NewCreatePDR() *ie.IE {
 }
 
 func NewCreatePDRs(pdrs []*PDR) []*ie.IE {
-	p := make([]*ie.IE, len(pdrs))
+	p := make([]*ie.IE, 0)
 	for i, pdr := range pdrs {
 		p[i] = pdr.NewCreatePDR()
 	}
@@ -84,7 +84,7 @@ func NewCreatePDRs(pdrs []*PDR) []*ie.IE {
 }
 
 func NewPDRs(pdrs []*ie.IE) ([]*PDR, error) {
-	p := make([]*PDR, len(pdrs))
+	p := make([]*PDR, 0)
 	for _, pdr := range pdrs {
 		id, err := pdr.PDRID()
 		if err != nil {

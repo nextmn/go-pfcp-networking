@@ -39,7 +39,7 @@ func (far *FAR) NewCreateFAR() *ie.IE {
 }
 
 func NewCreateFARs(fars []*FAR) []*ie.IE {
-	f := make([]*ie.IE, len(fars))
+	f := make([]*ie.IE, 0)
 	for i, far := range fars {
 		f[i] = far.NewCreateFAR()
 	}
@@ -47,7 +47,7 @@ func NewCreateFARs(fars []*FAR) []*ie.IE {
 }
 
 func NewFARs(fars []*ie.IE) (far []*FAR, err error) {
-	f := make([]*FAR, len(fars))
+	f := make([]*FAR, 0)
 	for _, far := range fars {
 		id, err := far.FARID()
 		if err != nil {
@@ -63,11 +63,11 @@ func NewFARs(fars []*ie.IE) (far []*FAR, err error) {
 		}
 
 		f = append(f,
-			&FAR{
+			NewFAR(
 				ie.NewFARID(id),
 				ie.NewApplyAction(aa),
 				ie.NewForwardingParameters(fp...),
-			})
+			))
 	}
 	return f, nil
 

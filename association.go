@@ -142,40 +142,16 @@ func (association *PFCPAssociation) NewPFCPSession(pdrs []*pfcprule.PDR, fars []
 	return &s, nil
 }
 
-// XXX: For now go-pfcp doesn't provide method to create FSEID without BOTH IPv4 and IPv6 set
 func NewFSEID(seid uint64, v4, v6 *net.IPAddr) (*ie.IE, error) {
 	if v4 == nil && v6 == nil {
 		return nil, fmt.Errorf("Cannot create FSEID with no IP Address")
 	}
 	var ip4, ip6 net.IP
-	ip4Set := false
-	ip6Set := false
 	if v4 != nil {
 		ip4 = v4.IP.To4()
-		ip4Set = true
-	} else {
-		ip4 = net.ParseIP("0.0.0.0").To4()
 	}
 	if v6 != nil {
 		ip6 = v6.IP.To16()
-		ip6Set = true
-	} else {
-		ip6 = net.ParseIP("::").To16()
 	}
-	fields := &ie.FSEIDFields{
-		SEID:        seid,
-		IPv4Address: ip4,
-		IPv6Address: ip6,
-	}
-	if ip4Set {
-		fields.SetIPv4Flag()
-	}
-	if ip6Set {
-		fields.SetIPv6Flag()
-	}
-	b, err := fields.Marshal()
-	if err != nil {
-		return nil, err
-	}
-	return ie.New(ie.FSEID, b), nil
+	return ie.NewFSEID(seid, ip4, ip6), nil
 }

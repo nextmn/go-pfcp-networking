@@ -110,13 +110,13 @@ func NewPDRs(pdrs []*ie.IE) ([]*PDR, error) {
 		}
 
 		p = append(p,
-			&PDR{
+			NewPDR(
 				ie.NewPDRID(id),
 				ie.NewPDI(pdi...),
 				ie.NewPrecedence(precedence),
 				ie.NewFARID(farid),
 				ohrIE,
-			})
+			))
 	}
 	return p, nil
 }

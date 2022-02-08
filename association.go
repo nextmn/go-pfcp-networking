@@ -2,6 +2,7 @@ package pfcp_networking
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"sync"
 	"time"
@@ -92,7 +93,15 @@ func (association *PFCPAssociation) CreateSession(seid, rseid uint64, pdrs []*pf
 	}
 	s := NewPFCPSession(localFseid, rseid)
 	tmpPDR := make(map[uint16]*pfcprule.PDR)
+	if pdrs == nil {
+		return nil, fmt.Errorf("No PDR in session")
+	}
+	log.Println("Adding", len(pdrs), "pdrs to session")
 	for _, pdr := range pdrs {
+		if pdr == nil {
+			log.Println("A pdr is nil")
+			continue
+		}
 		id, err := pdr.ID()
 		if err != nil {
 			return nil, err
@@ -100,7 +109,15 @@ func (association *PFCPAssociation) CreateSession(seid, rseid uint64, pdrs []*pf
 		tmpPDR[id] = pdr
 	}
 	tmpFAR := make(map[uint32]*pfcprule.FAR)
+	if fars == nil {
+		return nil, fmt.Errorf("No FAR in session")
+	}
+	log.Println("Adding", len(fars), "fars to session")
 	for _, far := range fars {
+		if far == nil {
+			log.Println("A far is nil")
+			continue
+		}
 		id, err := far.ID()
 		if err != nil {
 			return nil, err

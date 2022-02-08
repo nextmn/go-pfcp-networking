@@ -107,7 +107,7 @@ func (s *RemotePFCPSession) Start(pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) er
 		tmpFAR[id] = far
 	}
 	ies := make([]*ie.IE, 0)
-	ies = append(ies, s.association.NodeID)
+	ies = append(ies, s.association.Srv.NodeID())
 	ies = append(ies, s.fseid)
 	for _, pdr := range pfcprule.NewCreatePDRs(pdrs) {
 		ies = append(ies, pdr)

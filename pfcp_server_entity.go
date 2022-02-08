@@ -44,6 +44,7 @@ func (e *PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) e
 	if err != nil {
 		return err
 	}
+	log.Println("Storing new association with nodeid: ", nid)
 	e.muAssociations.Lock()
 	e.associations[nid] = association
 	e.muAssociations.Unlock()
@@ -56,6 +57,7 @@ func (e *PFCPServerEntity) GetPFCPAssociation(nodeID *ie.IE) (association *PFCPA
 	if err != nil {
 		return nil, err
 	}
+	log.Println("Checking for association with nodeid: ", nid)
 	if a, exists := e.associations[nid]; exists {
 		return a, nil
 	}

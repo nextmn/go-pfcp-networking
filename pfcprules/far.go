@@ -1,6 +1,10 @@
 package pfcprule
 
-import "github.com/wmnsk/go-pfcp/ie"
+import (
+	"io"
+
+	"github.com/wmnsk/go-pfcp/ie"
+)
 
 type FAR struct {
 	id                   *ie.IE
@@ -46,20 +50,41 @@ func NewCreateFARs(fars []*FAR) []*ie.IE {
 	return f
 }
 
-func NewFARs(fars []*ie.IE) (far []*FAR, err error) {
+func NewFARs(fars []*ie.IE) (far []*FAR, err error, cause uint8, offendingIE uint16) {
 	f := make([]*FAR, 0)
 	for _, far := range fars {
 		id, err := far.FARID()
 		if err != nil {
-			return nil, err
+			switch err {
+			case io.ErrUnexpectedEOF:
+				return nil, err, ie.CauseInvalidLength, ie.FARID
+			case ie.ErrIENotFound:
+				return nil, err, ie.CauseMandatoryIEMissing, ie.FARID
+			default:
+				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreateFAR
+			}
 		}
 		aa, err := far.ApplyAction()
 		if err != nil {
-			return nil, err
+			switch err {
+			case io.ErrUnexpectedEOF:
+				return nil, err, ie.CauseInvalidLength, ie.ApplyAction
+			case ie.ErrIENotFound:
+				return nil, err, ie.CauseMandatoryIEMissing, ie.ApplyAction
+			default:
+				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreateFAR
+			}
 		}
 		fp, err := far.ForwardingParameters()
+		// This IE shall be present when the Apply Action requests
+		// the packets to be forwarded. It may be present otherwise.
 		if err != nil {
-			return nil, err
+			if err == io.ErrUnexpectedEOF {
+				return nil, err, ie.CauseInvalidLength, ie.ForwardingParameters
+			}
+			if ie.NewApplyAction(aa).HasFORW() && err == ie.ErrIENotFound {
+				return nil, err, ie.CauseConditionalIEMissing, ie.ForwardingParameters
+			}
 		}
 
 		f = append(f,
@@ -69,6 +94,6 @@ func NewFARs(fars []*ie.IE) (far []*FAR, err error) {
 				ie.NewForwardingParameters(fp...),
 			))
 	}
-	return f, nil
+	return f, nil, 0, 0
 
 }

@@ -2,6 +2,7 @@ package pfcp_networking
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 
@@ -54,11 +55,7 @@ func handleSessionEstablishmentRequest(entity PFCPEntityInterface, senderAddr ne
 	if !ok {
 		return fmt.Errorf("Issue with Session Establishment Request")
 	}
-	association, err := entity.GetPFCPAssociation(m.NodeID)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
+	// CP F-SEID is a mandatory IE, but if it is missing or malformed, we are not able to send response
 	fseid, err := m.CPFSEID.FSEID()
 	if err != nil {
 		return err
@@ -67,15 +64,57 @@ func handleSessionEstablishmentRequest(entity PFCPEntityInterface, senderAddr ne
 	if err != nil {
 		return err
 	}
-	pdrs, err := pfcprule.NewPDRs(m.CreatePDR)
-	if err != nil {
-		return err
+	// check NodeID is present, or send cause(Mandatory IE missing)
+	if m.NodeID == nil {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.NodeID))
+		return entity.ReplyTo(senderAddr, msg, res)
 	}
-	fars, err := pfcprule.NewFARs(m.CreateFAR)
+	nid, err := m.NodeID.NodeID()
+	// check NodeID is well-formed, or send cause(Mandatory IE incorrect)
 	if err != nil {
-		return err
+		cause := ie.CauseMandatoryIEIncorrect
+		if err == io.ErrUnexpectedEOF {
+			cause = ie.CauseInvalidLength
+		}
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(ie.NodeID))
+		return entity.ReplyTo(senderAddr, msg, res)
+	}
+
+	association, err := entity.GetPFCPAssociation(nid)
+	// check Association is established, or send cause(No established PFCP Association)
+	if err != nil {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
+		return entity.ReplyTo(senderAddr, msg, res)
+	}
+
+	// CreatePDR is a Mandatory IE
+	if m.CreatePDR == nil || len(m.CreatePDR) == 0 {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreatePDR))
+		return entity.ReplyTo(senderAddr, msg, res)
+	}
+
+	// CreateFAR is a Mandatory IE
+	if m.CreateFAR == nil || len(m.CreateFAR) == 0 {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreateFAR))
+		return entity.ReplyTo(senderAddr, msg, res)
+	}
+	pdrs, err, cause, offendingie := pfcprule.NewPDRs(m.CreatePDR)
+	if err != nil {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
+		return entity.ReplyTo(senderAddr, msg, res)
+	}
+	fars, err, cause, offendingie := pfcprule.NewFARs(m.CreateFAR)
+	if err != nil {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
+		return entity.ReplyTo(senderAddr, msg, res)
 	}
 	session, err := association.CreateSession(entity.GetNextRemoteSessionID(), rseid, pdrs, fars)
+	if err != nil {
+		// Send cause(Rule creation/modification failure)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseRuleCreationModificationFailure))
+		return entity.ReplyTo(senderAddr, msg, res)
+
+	}
 	res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), session.FSEID())
 	return entity.ReplyTo(senderAddr, msg, res)
 }

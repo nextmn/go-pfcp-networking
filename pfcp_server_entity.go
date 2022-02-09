@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/louisroyer/go-pfcp-networking/pfcputil"
-	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
 
@@ -52,11 +51,7 @@ func (e *PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) e
 }
 
 // Returns an existing PFCP Association
-func (e *PFCPServerEntity) GetPFCPAssociation(nodeID *ie.IE) (association *PFCPAssociation, err error) {
-	nid, err := nodeID.NodeID()
-	if err != nil {
-		return nil, err
-	}
+func (e *PFCPServerEntity) GetPFCPAssociation(nid string) (association *PFCPAssociation, err error) {
 	log.Println("Checking for association with nodeid: ", nid)
 	if a, exists := e.associations[nid]; exists {
 		return a, nil

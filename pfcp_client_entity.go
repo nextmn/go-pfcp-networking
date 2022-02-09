@@ -49,11 +49,7 @@ func (e *PFCPClientEntity) RemovePFCPAssociation(association *PFCPAssociation) e
 }
 
 // Returns an existing PFCP Association
-func (e *PFCPClientEntity) GetPFCPAssociation(nodeID *ie.IE) (association *PFCPAssociation, err error) {
-	nid, err := e.NodeID().NodeID()
-	if err != nil {
-		return nil, err
-	}
+func (e *PFCPClientEntity) GetPFCPAssociation(nid string) (association *PFCPAssociation, err error) {
 	if a, exists := e.associations[nid]; exists {
 		return a, nil
 	}

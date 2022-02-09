@@ -1,6 +1,10 @@
 package pfcprule
 
-import "github.com/wmnsk/go-pfcp/ie"
+import (
+	"io"
+
+	"github.com/wmnsk/go-pfcp/ie"
+)
 
 type PDR struct {
 	id                 *ie.IE
@@ -83,30 +87,60 @@ func NewCreatePDRs(pdrs []*PDR) []*ie.IE {
 	return p
 }
 
-func NewPDRs(pdrs []*ie.IE) ([]*PDR, error) {
-	p := make([]*PDR, 0)
+func NewPDRs(pdrs []*ie.IE) (p []*PDR, err error, cause uint8, offendingIE uint16) {
 	for _, pdr := range pdrs {
 		id, err := pdr.PDRID()
 		if err != nil {
-			return nil, err
+			switch err {
+			case io.ErrUnexpectedEOF:
+				return nil, err, ie.CauseInvalidLength, ie.PDRID
+			case ie.ErrIENotFound:
+				return nil, err, ie.CauseMandatoryIEMissing, ie.PDRID
+			default:
+				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreatePDR
+			}
 		}
 		pdi, err := pdr.PDI()
 		if err != nil {
-			return nil, err
+			switch err {
+			case io.ErrUnexpectedEOF:
+				return nil, err, ie.CauseInvalidLength, ie.PDI
+			case ie.ErrIENotFound:
+				return nil, err, ie.CauseMandatoryIEMissing, ie.PDI
+			default:
+				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreatePDR
+			}
 		}
 		precedence, err := pdr.Precedence()
 		if err != nil {
-			return nil, err
+			switch err {
+			case io.ErrUnexpectedEOF:
+				return nil, err, ie.CauseInvalidLength, ie.Precedence
+			case ie.ErrIENotFound:
+				return nil, err, ie.CauseMandatoryIEMissing, ie.Precedence
+			default:
+				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreatePDR
+			}
 		}
 		farid, err := pdr.FARID()
 		if err != nil {
-			return nil, err
+			switch err {
+			case io.ErrUnexpectedEOF:
+				return nil, err, ie.CauseInvalidLength, ie.FARID
+			case ie.ErrIENotFound:
+				return nil, err, ie.CauseMandatoryIEMissing, ie.FARID
+			default:
+				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreatePDR
+			}
 		}
 
 		// conditional IE
 		var ohrIE *ie.IE
-		if ohr, err := pdr.OuterHeaderRemoval(); err == nil {
+		ohr, err := pdr.OuterHeaderRemoval()
+		if err == nil {
 			ohrIE = ie.NewOuterHeaderRemoval(ohr[0], ohr[1])
+		} else if err == io.ErrUnexpectedEOF {
+			return nil, err, ie.CauseInvalidLength, ie.OuterHeaderRemoval
 		}
 
 		p = append(p,
@@ -118,5 +152,5 @@ func NewPDRs(pdrs []*ie.IE) ([]*PDR, error) {
 				ohrIE,
 			))
 	}
-	return p, nil
+	return p, nil, 0, 0
 }

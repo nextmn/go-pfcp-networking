@@ -19,11 +19,6 @@ type PFCPEntityInterface interface {
 	GetPFCPAssociation(nodeID *ie.IE) (association *PFCPAssociation, err error)
 	ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error
 	GetNextRemoteSessionID() uint64
-	GetPFCPEntity() *PFCPEntity
-}
-
-func (entity *PFCPEntity) GetPFCPEntity() *PFCPEntity {
-	return entity
 }
 
 func (entity *PFCPEntity) ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error {

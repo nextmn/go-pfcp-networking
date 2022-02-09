@@ -15,7 +15,7 @@ type messageChan chan []byte
 
 type PFCPPeer struct {
 	NodeID  *ie.IE
-	Srv     *PFCPEntity
+	Srv     PFCPEntityInterface
 	conn    *net.UDPConn
 	udpAddr *net.UDPAddr
 	seq     uint32
@@ -24,7 +24,7 @@ type PFCPPeer struct {
 	stop    bool
 }
 
-func NewPFCPPeer(srv *PFCPEntity, nodeID *ie.IE) (peer *PFCPPeer, err error) {
+func NewPFCPPeer(srv PFCPEntityInterface, nodeID *ie.IE) (peer *PFCPPeer, err error) {
 	ipAddr, err := nodeID.NodeID()
 	if err != nil {
 		return nil, err

@@ -40,8 +40,8 @@ func (far *FAR) NewCreateFAR() *ie.IE {
 
 func NewCreateFARs(fars []*FAR) []*ie.IE {
 	f := make([]*ie.IE, 0)
-	for i, far := range fars {
-		f[i] = far.NewCreateFAR()
+	for _, far := range fars {
+		f = append(f, far.NewCreateFAR())
 	}
 	return f
 }

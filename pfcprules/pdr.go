@@ -77,8 +77,8 @@ func (pdr *PDR) NewCreatePDR() *ie.IE {
 
 func NewCreatePDRs(pdrs []*PDR) []*ie.IE {
 	p := make([]*ie.IE, 0)
-	for i, pdr := range pdrs {
-		p[i] = pdr.NewCreatePDR()
+	for _, pdr := range pdrs {
+		p = append(p, pdr.NewCreatePDR())
 	}
 	return p
 }

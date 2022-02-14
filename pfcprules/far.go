@@ -28,8 +28,8 @@ func NewFAR(id *ie.IE, applyAction *ie.IE, forwardingParameters *ie.IE) *FAR {
 	}
 }
 
-func (far *FAR) ForwardingParameters() ([]*ie.IE, error) {
-	return far.forwardingParameters.ForwardingParameters()
+func (far *FAR) ForwardingParameters() *ie.IE {
+	return far.forwardingParameters
 }
 
 func (far *FAR) NewCreateFAR() *ie.IE {

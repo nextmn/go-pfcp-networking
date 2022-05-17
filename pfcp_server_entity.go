@@ -42,6 +42,17 @@ func (e *PFCPServerEntity) initDefaultHandlers() error {
 	return nil
 }
 
+func (e *PFCPServerEntity) GetLocalSessions() PFCPSessionMapSEID {
+	// TODO: Store Session global map directly in the entity and only store array of SEIDs in association
+	var s PFCPSessionMapSEID
+	for _, a := range e.associations {
+		for k, v := range a.GetSessions() {
+			s[k] = v
+		}
+	}
+	return s
+}
+
 // Add an association to the association table
 func (e *PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) error {
 	nid, err := association.NodeID.NodeID()
@@ -50,6 +61,11 @@ func (e *PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) e
 	}
 	log.Println("Storing new association with nodeid: ", nid)
 	e.muAssociations.Lock()
+	// TODO:
+	// if the PFCP Association for this nid was already established:
+	// 1. if PFCP Session Retention Information was received in the request: retain existing sessions and set PSREI flag to 1 in response
+	//    else: delete existing sessions
+	// 2. delete previous association
 	e.associations[nid] = association
 	e.muAssociations.Unlock()
 	return nil
@@ -57,7 +73,6 @@ func (e *PFCPServerEntity) CreatePFCPAssociation(association *PFCPAssociation) e
 
 // Returns an existing PFCP Association
 func (e *PFCPServerEntity) GetPFCPAssociation(nid string) (association *PFCPAssociation, err error) {
-	log.Println("Checking for association with nodeid: ", nid)
 	if a, exists := e.associations[nid]; exists {
 		return a, nil
 	}

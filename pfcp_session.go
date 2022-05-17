@@ -8,6 +8,7 @@ package pfcp_networking
 import (
 	"fmt"
 	"log"
+	"net"
 	"sort"
 	"sync"
 
@@ -16,40 +17,81 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
+type PFCPSessionMapSEID = map[uint64]*PFCPSession
+type RemotePFCPSessionMapSEID = map[uint64]*RemotePFCPSession
+
 type PFCPSession struct {
-	fseid     *ie.IE
-	rseid     uint64
-	pdr       map[uint16]*pfcprule.PDR
-	far       map[uint32]*pfcprule.FAR
-	sortedPDR pfcprule.PDRs
-	mu        sync.Mutex
+	localFseid  *ie.IE // local F-SEID
+	remoteFseid *ie.IE // remote F-SEID
+	pdr         map[uint16]*pfcprule.PDR
+	far         map[uint32]*pfcprule.FAR
+	sortedPDR   pfcprule.PDRs
+	mu          sync.Mutex
 }
 
-func NewPFCPSession(fseid *ie.IE, rseid uint64) PFCPSession {
+func NewPFCPSession(fseid, rseid *ie.IE) PFCPSession {
 	return PFCPSession{
-		fseid:     fseid, // local F-SEID
-		rseid:     rseid, // SEID present in FSEID ie send by remote peer
-		pdr:       make(map[uint16]*pfcprule.PDR),
-		far:       make(map[uint32]*pfcprule.FAR),
-		sortedPDR: make(pfcprule.PDRs, 0),
-		mu:        sync.Mutex{},
+		localFseid:  fseid, // local F-SEID
+		remoteFseid: rseid, // SEID present in FSEID ie send by remote peer
+		pdr:         make(map[uint16]*pfcprule.PDR),
+		far:         make(map[uint32]*pfcprule.FAR),
+		sortedPDR:   make(pfcprule.PDRs, 0),
+		mu:          sync.Mutex{},
 	}
 }
 
-func (s *PFCPSession) SEID() (uint64, error) {
-	fseid, err := s.fseid.FSEID()
+func (s *PFCPSession) LocalFSEID() *ie.IE {
+	return s.localFseid
+}
+
+func (s *PFCPSession) LocalSEID() (uint64, error) {
+	fseid, err := s.localFseid.FSEID()
 	if err != nil {
 		return 0, err
 	}
 	return fseid.SEID, nil
 }
 
-func (s *PFCPSession) RSEID() uint64 {
-	return s.rseid
+func (s *PFCPSession) LocalIPAddress() (net.IP, error) {
+	fseid, err := s.localFseid.FSEID()
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case fseid.HasIPv6():
+		return fseid.IPv6Address, nil
+	case fseid.HasIPv4():
+		return fseid.IPv4Address, nil
+	default:
+		return nil, fmt.Errorf("Local IP Address not set")
+	}
 }
 
-func (s *PFCPSession) FSEID() *ie.IE {
-	return s.fseid
+func (s *PFCPSession) RemoteFSEID() *ie.IE {
+	return s.remoteFseid
+}
+
+func (s *PFCPSession) RemoteSEID() (uint64, error) {
+	fseid, err := s.remoteFseid.FSEID()
+	if err != nil {
+		return 0, err
+	}
+	return fseid.SEID, nil
+}
+
+func (s *PFCPSession) RemoteIPAddress() (net.IP, error) {
+	fseid, err := s.remoteFseid.FSEID()
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case fseid.HasIPv6():
+		return fseid.IPv6Address, nil
+	case fseid.HasIPv4():
+		return fseid.IPv4Address, nil
+	default:
+		return nil, fmt.Errorf("Remote IP Address not set")
+	}
 }
 
 func (s *PFCPSession) GetPDRs() pfcprule.PDRs {
@@ -86,9 +128,9 @@ type RemotePFCPSession struct {
 	association *PFCPAssociation
 }
 
-func NewRemotePFCPSession(fseid *ie.IE, association *PFCPAssociation) RemotePFCPSession {
+func NewRemotePFCPSession(localFseid *ie.IE, association *PFCPAssociation) RemotePFCPSession {
 	return RemotePFCPSession{
-		PFCPSession: NewPFCPSession(fseid, 0), // Remote SEID is initialized when a Session Establishment Response is received
+		PFCPSession: NewPFCPSession(localFseid, nil), // Remote SEID is initialized when a Session Establishment Response is received
 		association: association,
 	}
 }
@@ -113,7 +155,7 @@ func (s *RemotePFCPSession) Start(pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) er
 	}
 	ies := make([]*ie.IE, 0)
 	ies = append(ies, s.association.Srv.NodeID())
-	ies = append(ies, s.fseid)
+	ies = append(ies, s.localFseid)
 	for _, pdr := range pfcprule.NewCreatePDRs(pdrs) {
 		ies = append(ies, pdr)
 	}
@@ -130,11 +172,7 @@ func (s *RemotePFCPSession) Start(pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) er
 	if !ok {
 		log.Printf("got unexpected message: %s\n", resp.MessageTypeName())
 	}
-	fseid, err := ser.UPFSEID.FSEID()
-	if err != nil {
-		return err
-	}
-	s.rseid = fseid.SEID
+	s.remoteFseid = ser.UPFSEID
 	s.AddFARs(tmpFAR)
 	s.AddPDRs(tmpPDR)
 	return nil

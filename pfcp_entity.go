@@ -24,6 +24,7 @@ type PFCPEntityInterface interface {
 	GetPFCPAssociation(nid string) (association *PFCPAssociation, err error)
 	ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error
 	GetNextRemoteSessionID() uint64
+	GetLocalSessions() PFCPSessionMapSEID
 }
 
 func (entity *PFCPEntity) ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error {
@@ -85,7 +86,7 @@ func newDefaultPFCPEntityHandlers() map[pfcputil.MessageType]handler {
 
 func NewPFCPEntity(nodeID string) PFCPEntity {
 	return PFCPEntity{
-		nodeID:              pfcputil.CreateNodeID(nodeID),
+		nodeID:              ie.NewNodeIDHeuristic(nodeID),
 		recoveryTimeStamp:   nil,
 		handlers:            newDefaultPFCPEntityHandlers(),
 		conn:                nil,

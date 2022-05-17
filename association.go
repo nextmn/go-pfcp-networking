@@ -18,16 +18,16 @@ import (
 
 type PFCPAssociation struct {
 	*PFCPPeer
-	sessions       map[uint64]*PFCPSession
-	remoteSessions map[uint64]*RemotePFCPSession
+	sessions       PFCPSessionMapSEID
+	remoteSessions RemotePFCPSessionMapSEID
 	mu             sync.Mutex
 }
 
 func NewPFCPAssociation(peer *PFCPPeer) PFCPAssociation {
 	association := PFCPAssociation{
 		PFCPPeer:       peer,
-		sessions:       make(map[uint64]*PFCPSession),
-		remoteSessions: make(map[uint64]*RemotePFCPSession),
+		sessions:       make(PFCPSessionMapSEID),
+		remoteSessions: make(RemotePFCPSessionMapSEID),
 	}
 	go association.heartMonitoring()
 	return association
@@ -51,10 +51,11 @@ func (association *PFCPAssociation) heartMonitoring() error {
 	}
 }
 
-func (association *PFCPAssociation) GetSessions() map[uint64]*PFCPSession {
+func (association *PFCPAssociation) GetSessions() PFCPSessionMapSEID {
 	return association.sessions
 }
 
+// Generate a local FSEID IE for the session (to be created) identified by a given SEID
 func (association *PFCPAssociation) getFSEID(seid uint64) (*ie.IE, error) {
 	ieNodeID := association.Srv.NodeID()
 	nodeID, err := ieNodeID.NodeID()
@@ -91,12 +92,13 @@ func (association *PFCPAssociation) getFSEID(seid uint64) (*ie.IE, error) {
 	}
 	return localFseid, nil
 }
-func (association *PFCPAssociation) CreateSession(seid, rseid uint64, pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session *PFCPSession, err error) {
-	localFseid, err := association.getFSEID(seid)
+
+func (association *PFCPAssociation) CreateSession(localSEID uint64, remoteFseid *ie.IE, pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session *PFCPSession, err error) {
+	localFseid, err := association.getFSEID(localSEID)
 	if err != nil {
 		return nil, err
 	}
-	s := NewPFCPSession(localFseid, rseid)
+	s := NewPFCPSession(localFseid, remoteFseid)
 	tmpPDR := make(map[uint16]*pfcprule.PDR)
 	if pdrs == nil {
 		return nil, fmt.Errorf("No PDR in session")
@@ -132,21 +134,20 @@ func (association *PFCPAssociation) CreateSession(seid, rseid uint64, pdrs []*pf
 	s.AddFARs(tmpFAR)
 	s.AddPDRs(tmpPDR)
 	association.mu.Lock()
-	association.sessions[rseid] = &s
+	association.sessions[localSEID] = &s
 	association.mu.Unlock()
 	return &s, nil
 }
 
-func (association *PFCPAssociation) NewPFCPSession(seid uint64, pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session *RemotePFCPSession, err error) {
-	localFseid, err := association.getFSEID(seid)
+func (association *PFCPAssociation) NewPFCPSession(localSEID uint64, pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session *RemotePFCPSession, err error) {
+	localFseid, err := association.getFSEID(localSEID)
 	if err != nil {
 		return nil, err
 	}
 	s := NewRemotePFCPSession(localFseid, association)
 	s.Start(pdrs, fars)
-	rseid := s.RSEID()
 	association.mu.Lock()
-	association.remoteSessions[rseid] = &s
+	association.remoteSessions[localSEID] = &s
 	association.mu.Unlock()
 	return &s, nil
 }

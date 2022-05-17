@@ -22,7 +22,7 @@ cpNode := NewPFCPClientEntity(cpAddress)
 cpNode.Start()
 peer, _ := NewPFCPPeer(cpNode, pfcputils.CreateNodeID(nodeID)
 a, _ := cpNode.NewPFCPAssociation(peer)
-a.NewPFCPSession(cp.GetNextRemoteSessionID(), pdrs, fars)
+a.NewPFCPSession(cpNode.GetNextRemoteSessionID(), pdrs, fars)
 
 ```
 

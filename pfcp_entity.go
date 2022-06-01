@@ -22,36 +22,39 @@ type PFCPEntityInterface interface {
 	CreatePFCPAssociation(association *PFCPAssociation) error
 	RemovePFCPAssociation(association *PFCPAssociation) error
 	GetPFCPAssociation(nid string) (association *PFCPAssociation, err error)
-	ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error
 	GetNextRemoteSessionID() uint64
 	GetLocalSessions() PFCPSessionMapSEID
+	sendTo(msg []byte, dst net.Addr) error
 }
 
-func (entity *PFCPEntity) ReplyTo(ipAddress net.Addr, requestMessage message.Message, responseMessage message.Message) error {
-	if !pfcputil.IsMessageTypeRequest(requestMessage.MessageType()) {
-		return fmt.Errorf("requestMessage shall be a Request Message")
+type ReceivedMessage struct {
+	message.Message
+	SenderAddr net.Addr
+	Entity     PFCPEntityInterface
+}
+
+func (receivedMessage *ReceivedMessage) ReplyTo(responseMessage message.Message) error {
+	if !pfcputil.IsMessageTypeRequest(receivedMessage.MessageType()) {
+		return fmt.Errorf("receivedMessage shall be a Request Message")
 	}
 	if !pfcputil.IsMessageTypeResponse(responseMessage.MessageType()) {
 		return fmt.Errorf("responseMessage shall be a Response Message")
 	}
-	if requestMessage.Sequence() != responseMessage.Sequence() {
-		return fmt.Errorf("responseMessage shall have the same Sequence Number than requestMessage")
+	if receivedMessage.Sequence() != responseMessage.Sequence() {
+		return fmt.Errorf("responseMessage shall have the same Sequence Number than receivedMessage")
 	}
 	//XXX: message.Message interface does not implement Marshal()
 	b := make([]byte, responseMessage.MarshalLen())
 	if err := responseMessage.MarshalTo(b); err != nil {
 		return err
 	}
-
-	entity.mu.Lock()
-	if _, err := entity.conn.WriteTo(b, ipAddress); err != nil {
+	if err := receivedMessage.Entity.sendTo(b, receivedMessage.SenderAddr); err != nil {
 		return err
 	}
-	entity.mu.Unlock()
 	return nil
 }
 
-type handler = func(entity PFCPEntityInterface, senderAddr net.Addr, msg message.Message) error
+type handler = func(receivedMessage ReceivedMessage) error
 
 type PFCPEntity struct {
 	nodeID              *ie.IE
@@ -61,6 +64,15 @@ type PFCPEntity struct {
 	mu                  sync.Mutex
 	nextRemoteSessionID uint64
 	muSessionID         sync.Mutex
+}
+
+func (e *PFCPEntity) sendTo(msg []byte, dst net.Addr) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if _, err := e.conn.WriteTo(msg, dst); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (e *PFCPEntity) GetNextRemoteSessionID() uint64 {
@@ -98,6 +110,7 @@ func NewPFCPEntity(nodeID string) PFCPEntity {
 
 func (e *PFCPEntity) listen() error {
 	e.recoveryTimeStamp = ie.NewRecoveryTimeStamp(time.Now())
+	// TODO: if NodeID is a FQDN, we can expose multiple ip addresses
 	ipAddr, err := e.NodeID().NodeID()
 	if err != nil {
 		return err

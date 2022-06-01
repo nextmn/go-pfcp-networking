@@ -111,7 +111,7 @@ func (e *PFCPServerEntity) Start() error {
 			if err != nil {
 				log.Println(err)
 			}
-			err = f(e, addr, msg)
+			err = f(ReceivedMessage{Message: msg, SenderAddr: addr, Entity: e})
 			if err != nil {
 				log.Println(err)
 			}

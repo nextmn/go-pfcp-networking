@@ -16,47 +16,47 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-func handleHeartbeatRequest(entity PFCPEntityInterface, senderAddr net.Addr, msg message.Message) error {
+func handleHeartbeatRequest(msg ReceivedMessage) error {
 	log.Println("Received Heartbeat Request")
-	res := message.NewHeartbeatResponse(msg.Sequence(), entity.RecoveryTimeStamp())
-	return entity.ReplyTo(senderAddr, msg, res)
+	res := message.NewHeartbeatResponse(msg.Sequence(), msg.Entity.RecoveryTimeStamp())
+	return msg.ReplyTo(res)
 }
 
-func handleAssociationSetupRequest(entity PFCPEntityInterface, senderAddr net.Addr, msg message.Message) error {
+func handleAssociationSetupRequest(msg ReceivedMessage) error {
 	log.Println("Received Association Setup Request")
-	m, ok := msg.(*message.AssociationSetupRequest)
+	m, ok := msg.Message.(*message.AssociationSetupRequest)
 	if !ok {
 		return fmt.Errorf("Issue with Association Setup Request")
 	}
-	peer, err := NewPFCPPeer(entity, m.NodeID)
+	peer, err := NewPFCPPeer(msg.Entity, m.NodeID)
 	if err != nil {
 		return err
 	}
 	association := NewPFCPAssociation(peer)
-	err = entity.CreatePFCPAssociation(&association)
+	err = msg.Entity.CreatePFCPAssociation(&association)
 	if err != nil {
 		return err
 	}
 	switch {
-	case msg == nil:
+	case msg.Message == nil:
 		return fmt.Errorf("msg is nil")
 	case msg.Sequence == nil:
 		return fmt.Errorf("msg.Sequence is nil")
-	case entity == nil:
+	case msg.Entity == nil:
 		return fmt.Errorf("entity is nil")
-	case entity.NodeID() == nil:
+	case msg.Entity.NodeID() == nil:
 		return fmt.Errorf("entity.NodeID() is nil")
-	case entity.RecoveryTimeStamp() == nil:
+	case msg.Entity.RecoveryTimeStamp() == nil:
 		return fmt.Errorf("entity.RecoveryTimeStamp() is nil")
 	}
 
-	res := message.NewAssociationSetupResponse(msg.Sequence(), entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), entity.RecoveryTimeStamp())
-	return entity.ReplyTo(senderAddr, msg, res)
+	res := message.NewAssociationSetupResponse(msg.Sequence(), msg.Entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), msg.Entity.RecoveryTimeStamp())
+	return msg.ReplyTo(res)
 }
 
-func handleSessionEstablishmentRequest(entity PFCPEntityInterface, senderAddr net.Addr, msg message.Message) error {
+func handleSessionEstablishmentRequest(msg ReceivedMessage) error {
 	log.Println("Received Session Establishment Request")
-	m, ok := msg.(*message.SessionEstablishmentRequest)
+	m, ok := msg.Message.(*message.SessionEstablishmentRequest)
 	if !ok {
 		return fmt.Errorf("Issue with Session Establishment Request")
 	}
@@ -68,8 +68,8 @@ func handleSessionEstablishmentRequest(entity PFCPEntityInterface, senderAddr ne
 	// The PFCP entities shall accept any new IP address allocated as part of F-SEID
 	// other than the one(s) communicated in the Node ID during Association Establishment Procedure
 	if m.CPFSEID == nil {
-		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.FSEID))
-		return entity.ReplyTo(senderAddr, msg, res)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.FSEID))
+		return msg.ReplyTo(res)
 	}
 	fseid, err := m.CPFSEID.FSEID()
 	if err != nil {
@@ -77,23 +77,23 @@ func handleSessionEstablishmentRequest(entity PFCPEntityInterface, senderAddr ne
 		if err == io.ErrUnexpectedEOF {
 			cause = ie.CauseInvalidLength
 		}
-		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(ie.FSEID))
-		return entity.ReplyTo(senderAddr, msg, res)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(ie.FSEID))
+		return msg.ReplyTo(res)
 		return err
 	}
 	rseid = fseid.SEID
 
 	// Sender must have established a PFCP Association with the Receiver Node
-	if _, err := checkSenderAssociation(entity, senderAddr); err != nil {
+	if _, err := checkSenderAssociation(msg.Entity, msg.SenderAddr); err != nil {
 		log.Println(err)
-		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
-		return entity.ReplyTo(senderAddr, msg, res)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
+		return msg.ReplyTo(res)
 	}
 
 	// NodeID is a mandatory IE
 	if m.NodeID == nil {
-		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.NodeID))
-		return entity.ReplyTo(senderAddr, msg, res)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.NodeID))
+		return msg.ReplyTo(res)
 	}
 	nid, err := m.NodeID.NodeID()
 	if err != nil {
@@ -101,79 +101,81 @@ func handleSessionEstablishmentRequest(entity PFCPEntityInterface, senderAddr ne
 		if err == io.ErrUnexpectedEOF {
 			cause = ie.CauseInvalidLength
 		}
-		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(ie.NodeID))
-		return entity.ReplyTo(senderAddr, msg, res)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(ie.NodeID))
+		return msg.ReplyTo(res)
 	}
 
 	// NodeID is used to define which PFCP Association is associated the PFCP Session
 	// When the PFCP Association is destructed, associated PFCP Sessions are destructed as well
 	// Since the NodeID can be modified with a Session Modification Request without constraint,
 	// we only need to check the Association is established (it can be a different NodeID than the Sender's one).
-	association, err := entity.GetPFCPAssociation(nid)
+	association, err := msg.Entity.GetPFCPAssociation(nid)
 	if err != nil {
-		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
-		return entity.ReplyTo(senderAddr, msg, res)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
+		return msg.ReplyTo(res)
 	}
 
 	// CreatePDR is a Mandatory IE
 	if m.CreatePDR == nil || len(m.CreatePDR) == 0 {
-		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreatePDR))
-		return entity.ReplyTo(senderAddr, msg, res)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreatePDR))
+		return msg.ReplyTo(res)
 	}
 
 	// CreateFAR is a Mandatory IE
 	if m.CreateFAR == nil || len(m.CreateFAR) == 0 {
-		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreateFAR))
-		return entity.ReplyTo(senderAddr, msg, res)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreateFAR))
+		return msg.ReplyTo(res)
 	}
 
 	// create PDRs
 	pdrs, err, cause, offendingie := pfcprule.NewPDRs(m.CreatePDR)
 	if err != nil {
-		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
-		return entity.ReplyTo(senderAddr, msg, res)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
+		return msg.ReplyTo(res)
 	}
 
 	// create FARs
 	fars, err, cause, offendingie := pfcprule.NewFARs(m.CreateFAR)
 	if err != nil {
-		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
-		return entity.ReplyTo(senderAddr, msg, res)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
+		return msg.ReplyTo(res)
 	}
 
 	// create session with PDRs and FARs
-	session, err := association.CreateSession(entity.GetNextRemoteSessionID(), m.CPFSEID, pdrs, fars)
+	session, err := association.CreateSession(msg.Entity.GetNextRemoteSessionID(), m.CPFSEID, pdrs, fars)
 	if err != nil {
 		// Send cause(Rule creation/modification failure)
-		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseRuleCreationModificationFailure))
-		return entity.ReplyTo(senderAddr, msg, res)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseRuleCreationModificationFailure))
+		return msg.ReplyTo(res)
 	}
 
+	// TODO: Create other type IEs
+
 	// send response: session creation accepted
-	res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), session.LocalFSEID())
-	return entity.ReplyTo(senderAddr, msg, res)
+	res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), session.LocalFSEID())
+	return msg.ReplyTo(res)
 }
 
-func handleSessionModificationRequest(entity PFCPEntityInterface, senderAddr net.Addr, msg message.Message) error {
+func handleSessionModificationRequest(msg ReceivedMessage) error {
 	log.Println("Received Session Modification Request")
-	_, ok := msg.(*message.SessionModificationRequest)
+	_, ok := msg.Message.(*message.SessionModificationRequest)
 	if !ok {
 		return fmt.Errorf("Issue with Session Modification Request")
 	}
 	// Peer must have an association established or the message will be rejected
-	if _, err := checkSenderAssociation(entity, senderAddr); err != nil {
+	if _, err := checkSenderAssociation(msg.Entity, msg.SenderAddr); err != nil {
 		var rseid uint64 = 0
 		log.Println(err)
-		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
-		return entity.ReplyTo(senderAddr, msg, res)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
+		return msg.ReplyTo(res)
 	}
 
 	// Find the Session by its F-SEID
 	localseid := msg.SEID()
-	sessions := entity.GetLocalSessions()
+	sessions := msg.Entity.GetLocalSessions()
 	if _, ok := sessions[localseid]; !ok {
 		res := message.NewSessionModificationResponse(0, 0, 0, msg.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound))
-		return entity.ReplyTo(senderAddr, msg, res)
+		return msg.ReplyTo(res)
 	}
 	session := sessions[localseid]
 	rseid, err := session.RemoteSEID()
@@ -181,9 +183,14 @@ func handleSessionModificationRequest(entity PFCPEntityInterface, senderAddr net
 		return err
 	}
 
+	// CP F-SEID
+	// This IE shall be present if the CP function decides to change its F-SEID for the
+	// PFCP session. The UP function shall use the new CP F-SEID for subsequent
+	// PFCP Session related messages for this PFCP Session
+
 	// TODO:
 	res := message.NewSessionModificationResponse(0, 0, rseid, msg.Sequence(), 0, ie.NewCause(ie.CauseRequestRejected))
-	return entity.ReplyTo(senderAddr, msg, res)
+	return msg.ReplyTo(res)
 }
 
 func checkSenderAssociation(entity PFCPEntityInterface, senderAddr net.Addr) (*PFCPAssociation, error) {

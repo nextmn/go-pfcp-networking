@@ -103,10 +103,10 @@ func (association *PFCPAssociation) CreateSession(localSEID uint64, remoteFseid 
 	if pdrs == nil {
 		return nil, fmt.Errorf("No PDR in session")
 	}
-	log.Println("Adding", len(pdrs), "pdrs to session")
+	log.Println("Adding", len(pdrs), "PDRs to session")
 	for _, pdr := range pdrs {
 		if pdr == nil {
-			log.Println("A pdr is nil")
+			log.Println("A PDR is nil")
 			continue
 		}
 		id, err := pdr.ID()
@@ -119,10 +119,10 @@ func (association *PFCPAssociation) CreateSession(localSEID uint64, remoteFseid 
 	if fars == nil {
 		return nil, fmt.Errorf("No FAR in session")
 	}
-	log.Println("Adding", len(fars), "fars to session")
+	log.Println("Adding", len(fars), "FARs to session")
 	for _, far := range fars {
 		if far == nil {
-			log.Println("A far is nil")
+			log.Println("A FAR is nil")
 			continue
 		}
 		id, err := far.ID()

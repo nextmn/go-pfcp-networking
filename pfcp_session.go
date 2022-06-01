@@ -20,7 +20,11 @@ import (
 type PFCPSessionMapSEID = map[uint64]*PFCPSession
 type RemotePFCPSessionMapSEID = map[uint64]*RemotePFCPSession
 
+// A PFCPSession is controlled localy
 type PFCPSession struct {
+	// When Peer A send a message (M) to Peer B
+	// M.PFCPHeader.SEID = B.LocalSEID() = A.RemoteSEID()
+	// M.IPHeader.IP_DST = B.LocalIPAddress = A.RemoteIPAddress()
 	localFseid  *ie.IE // local F-SEID
 	remoteFseid *ie.IE // remote F-SEID
 	pdr         map[uint16]*pfcprule.PDR
@@ -123,6 +127,14 @@ func (s *PFCPSession) AddFARs(fars map[uint32]*pfcprule.FAR) {
 	s.mu.Unlock()
 }
 
+// Set the remote FSEID of a PFCPSession
+func (s *PFCPSession) SetRemoteFSEID(FSEID *ie.IE) {
+}
+
+// A RemotePFCPSession is a PFCPSession that will be pushed to a remote Associated Peer
+// Peer A create a RemotePFCPSession and push it to Peer B:
+// 1. A.NewRemotePFCPSessionp(…).Start()
+// 2. Now on B side, a PFCPSession is created with the rules defined by A
 type RemotePFCPSession struct {
 	PFCPSession
 	association *PFCPAssociation

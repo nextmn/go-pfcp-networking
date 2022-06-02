@@ -1,0 +1,212 @@
+// Copyright 2022 Louis Royer and the go-pfcp-networking contributors. All rights reserved.
+// Use of this source code is governed by a MIT-style license that can be
+// found in the LICENSE file.
+// SPDX-License-Identifier: MIT
+
+package pfcp_networking
+
+import (
+	"fmt"
+	"log"
+	"net"
+	"time"
+
+	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
+	"github.com/wmnsk/go-pfcp/ie"
+	"github.com/wmnsk/go-pfcp/message"
+)
+
+type PFCPAssociation struct {
+	api.PFCPPeerInterface               // connection to remote peer
+	isSetup               bool          // true when session is already set-up
+	sessionIDPool         SessionIDPool // used to generate SEIDs for this association
+}
+
+// Create a new PFCPAssociation, this association is already set-up
+func newEstablishedPFCPAssociation(peer api.PFCPPeerInterface) (api.PFCPAssociationInterface, error) {
+	association := PFCPAssociation{
+		PFCPPeerInterface: peer,
+		isSetup:           false,
+	}
+	err := association.SetupInitiatedByCP()
+	if err != nil {
+		return nil, err
+	}
+	return association, nil
+}
+
+// Setup a PFCPAssociation with the PFCP Association Setup by the CP Function Procedure
+// If the LocalEntity is a CP function, a PFCP Association Setup Request is sent,
+// if the LocalEntity is a UP function, we assume this method is called
+// because we received a Association Setup Request.
+//
+// PFCP Association Setup Initiated by the UP Function is NOT supported (yet). PR are welcome.
+//
+// See 129.244 v16.0.1, section 6.2.6.1:
+// The setup of a PFCP association may be initiated by the CP function (see clause 6.2.6.2) or the UP function (see
+// clause 6.2.6.3).
+// The CP function and the UP function shall support the PFCP Association Setup initiated by the CP function. The CP
+// function and the UP function may additionally support the PFCP Association Setup initiated by the UP function.
+func (association PFCPAssociation) SetupInitiatedByCP() error {
+	if association.isSetup {
+		return fmt.Errorf("Association is already set up")
+	}
+	switch {
+	case association.LocalEntity().IsUserPlane():
+		association.isSetup = true
+		go association.heartMonitoring()
+		return nil
+	case association.LocalEntity().IsControlPlane():
+		sar := message.NewAssociationSetupRequest(0, association.LocalEntity().NodeID(), association.LocalEntity().RecoveryTimeStamp())
+		resp, err := association.Send(sar)
+		if err != nil {
+			return err
+		}
+		asres, ok := resp.(*message.AssociationSetupResponse)
+		if !ok {
+			log.Printf("got unexpected message: %s\n", resp.MessageTypeName())
+		}
+		cause, err := asres.Cause.Cause()
+		if err != nil {
+			// TODO: send missing ie message
+			return err
+		}
+		if cause == ie.CauseRequestAccepted {
+			association.isSetup = true
+			go association.heartMonitoring()
+			return nil
+		}
+		return fmt.Errorf("Associaton setup request rejected")
+	default:
+		return fmt.Errorf("Local PFCP entity is not a UP function, neither a CP function.")
+	}
+}
+
+// Start monitoring heart of a PFCP Association
+func (association *PFCPAssociation) heartMonitoring() error {
+	defer association.Close()
+	checkInterval := 30 * time.Second
+	for {
+		select {
+		case <-time.After(checkInterval):
+			alive, err := association.IsAlive()
+			if !alive {
+				return fmt.Errorf("PFCP Peer is dead")
+			}
+			if err != nil {
+				return err
+			}
+		}
+	}
+}
+
+// Generate a local FSEID IE for the session (to be created) identified by a given SEID
+func (association *PFCPAssociation) getFSEID(seid uint64) (*ie.IE, error) {
+	ieNodeID := association.LocalEntity().NodeID()
+	nodeID, err := ieNodeID.NodeID()
+	if err != nil {
+		return nil, err
+	}
+	var localFseid *ie.IE
+	switch ieNodeID.Payload[0] {
+	case ie.NodeIDIPv4Address:
+		ip4, err := net.ResolveIPAddr("ip4", nodeID)
+		if err != nil {
+			return nil, err
+		}
+		localFseid, err = NewFSEID(seid, ip4, nil)
+		if err != nil {
+			return nil, err
+		}
+	case ie.NodeIDIPv6Address:
+		ip6, err := net.ResolveIPAddr("ip6", nodeID)
+		if err != nil {
+			return nil, err
+		}
+		localFseid, err = NewFSEID(seid, nil, ip6)
+		if err != nil {
+			return nil, err
+		}
+	case ie.NodeIDFQDN:
+		ip4, err4 := net.ResolveIPAddr("ip4", nodeID)
+		ip6, err6 := net.ResolveIPAddr("ip6", nodeID)
+		if err4 != nil && err6 != nil {
+			return nil, fmt.Errorf("Cannot resolve NodeID")
+		}
+		localFseid = ie.NewFSEID(seid, ip4.IP.To4(), ip6.IP.To16())
+	}
+	return localFseid, nil
+}
+
+//func (association *PFCPAssociation) CreateSession(localSEID uint64, remoteFseid *ie.IE, pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session *PFCPSession, err error) {
+//	localFseid, err := association.getFSEID(localSEID)
+//	if err != nil {
+//		return nil, err
+//	}
+//	s := NewPFCPSession(localFseid, remoteFseid)
+//	tmpPDR := make(map[uint16]*pfcprule.PDR)
+//	if pdrs == nil {
+//		return nil, fmt.Errorf("No PDR in session")
+//	}
+//	log.Println("Adding", len(pdrs), "PDRs to session")
+//	for _, pdr := range pdrs {
+//		if pdr == nil {
+//			log.Println("A PDR is nil")
+//			continue
+//		}
+//		id, err := pdr.ID()
+//		if err != nil {
+//			return nil, err
+//		}
+//		tmpPDR[id] = pdr
+//	}
+//	tmpFAR := make(map[uint32]*pfcprule.FAR)
+//	if fars == nil {
+//		return nil, fmt.Errorf("No FAR in session")
+//	}
+//	log.Println("Adding", len(fars), "FARs to session")
+//	for _, far := range fars {
+//		if far == nil {
+//			log.Println("A FAR is nil")
+//			continue
+//		}
+//		id, err := far.ID()
+//		if err != nil {
+//			return nil, err
+//		}
+//		tmpFAR[id] = far
+//	}
+//	s.AddPDRsFARs(tmpPDR, tmpFAR)
+//	association.muSessions.Lock()
+//	defer association.muSessions.Unlock()
+//	association.sessions[localSEID] = &s
+//	return &s, nil
+//}
+//
+//func (association *PFCPAssociation) NewPFCPSession(pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session *RemotePFCPSession, err error) {
+//	localFseid, err := association.getFSEID(association.sessionIDPool.GetNext())
+//	if err != nil {
+//		return nil, err
+//	}
+//	s := NewRemotePFCPSession(localFseid, association)
+//	s.Start(pdrs, fars)
+//	association.muRemoteSessions.Lock()
+//	defer association.muRemoteSessions.Unlock()
+//	association.remoteSessions[localSEID] = &s
+//	return &s, nil
+//}
+//
+// Safe function to create FSEID
+func NewFSEID(seid uint64, v4, v6 *net.IPAddr) (*ie.IE, error) {
+	if v4 == nil && v6 == nil {
+		return nil, fmt.Errorf("Cannot create FSEID with no IP Address")
+	}
+	var ip4, ip6 net.IP
+	if v4 != nil {
+		ip4 = v4.IP.To4()
+	}
+	if v6 != nil {
+		ip6 = v6.IP.To16()
+	}
+	return ie.NewFSEID(seid, ip4, ip6), nil
+}

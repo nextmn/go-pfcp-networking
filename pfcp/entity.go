@@ -7,52 +7,16 @@ package pfcp_networking
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"sync"
 	"time"
 
+	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
 	"github.com/louisroyer/go-pfcp-networking/pfcputil"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
-
-type PFCPEntityInterface interface {
-	NodeID() *ie.IE
-	RecoveryTimeStamp() *ie.IE
-	CreatePFCPAssociation(association *PFCPAssociation) error
-	RemovePFCPAssociation(association *PFCPAssociation) error
-	GetPFCPAssociation(nid string) (association *PFCPAssociation, err error)
-	GetNextRemoteSessionID() uint64
-	GetLocalSessions() PFCPSessionMapSEID
-	sendTo(msg []byte, dst net.Addr) error
-}
-
-type ReceivedMessage struct {
-	message.Message
-	SenderAddr net.Addr
-	Entity     PFCPEntityInterface
-}
-
-func (receivedMessage *ReceivedMessage) ReplyTo(responseMessage message.Message) error {
-	if !pfcputil.IsMessageTypeRequest(receivedMessage.MessageType()) {
-		return fmt.Errorf("receivedMessage shall be a Request Message")
-	}
-	if !pfcputil.IsMessageTypeResponse(responseMessage.MessageType()) {
-		return fmt.Errorf("responseMessage shall be a Response Message")
-	}
-	if receivedMessage.Sequence() != responseMessage.Sequence() {
-		return fmt.Errorf("responseMessage shall have the same Sequence Number than receivedMessage")
-	}
-	//XXX: message.Message interface does not implement Marshal()
-	b := make([]byte, responseMessage.MarshalLen())
-	if err := responseMessage.MarshalTo(b); err != nil {
-		return err
-	}
-	if err := receivedMessage.Entity.sendTo(b, receivedMessage.SenderAddr); err != nil {
-		return err
-	}
-	return nil
-}
 
 type handler = func(receivedMessage ReceivedMessage) error
 
@@ -61,14 +25,16 @@ type PFCPEntity struct {
 	recoveryTimeStamp   *ie.IE
 	handlers            map[pfcputil.MessageType]handler
 	conn                *net.UDPConn
-	mu                  sync.Mutex
+	connMu              sync.Mutex
 	nextRemoteSessionID uint64
 	muSessionID         sync.Mutex
+	associationsMap     AssociationsMap
+	kind                string // "CP" or "UP"
 }
 
-func (e *PFCPEntity) sendTo(msg []byte, dst net.Addr) error {
-	e.mu.Lock()
-	defer e.mu.Unlock()
+func (e *PFCPEntity) SendTo(msg []byte, dst net.Addr) error {
+	e.connMu.Lock()
+	defer e.connMu.Unlock()
 	if _, err := e.conn.WriteTo(msg, dst); err != nil {
 		return err
 	}
@@ -77,9 +43,9 @@ func (e *PFCPEntity) sendTo(msg []byte, dst net.Addr) error {
 
 func (e *PFCPEntity) GetNextRemoteSessionID() uint64 {
 	e.muSessionID.Lock()
+	defer e.muSessionID.Unlock()
 	id := e.nextRemoteSessionID
 	e.nextRemoteSessionID = id + 1
-	e.muSessionID.Unlock()
 	return id
 }
 
@@ -96,15 +62,17 @@ func newDefaultPFCPEntityHandlers() map[pfcputil.MessageType]handler {
 	return m
 }
 
-func NewPFCPEntity(nodeID string) PFCPEntity {
+func NewPFCPEntity(nodeID string, kind string) PFCPEntity {
 	return PFCPEntity{
 		nodeID:              ie.NewNodeIDHeuristic(nodeID),
 		recoveryTimeStamp:   nil,
 		handlers:            newDefaultPFCPEntityHandlers(),
 		conn:                nil,
-		mu:                  sync.Mutex{},
+		connMu:              sync.Mutex{},
 		nextRemoteSessionID: 1,
 		muSessionID:         sync.Mutex{},
+		associationsMap:     NewAssociationsMap(),
+		kind:                kind,
 	}
 }
 
@@ -160,4 +128,87 @@ func (e *PFCPEntity) AddHandlers(funcs map[pfcputil.MessageType]handler) error {
 		e.handlers[t] = h
 	}
 	return nil
+}
+
+// Add an (already established) association to the association table
+func (e *PFCPEntity) AddPFCPAssociation(association api.PFCPAssociationInterface) error {
+	// TODO:
+	// if the PFCP Association for this nid was already established:
+	// 1. if PFCP Session Retention Information was received in the request: retain existing (local) sessions and set PSREI flag to 1 in response
+	//    else: delete existing sessions
+	// 2. delete previous association
+	return e.associationsMap.Add(association)
+}
+
+// Remove an association from the association table
+func (e *PFCPEntity) RemovePFCPAssociation(association api.PFCPAssociationInterface) error {
+	return e.associationsMap.Remove(association)
+}
+
+// Returns an existing PFCP Association
+func (e *PFCPEntity) GetPFCPAssociation(nid string) (association api.PFCPAssociationInterface, err error) {
+	return e.associationsMap.Get(nid)
+}
+
+func (e *PFCPEntity) NewEstablishedPFCPAssociation(nodeID *ie.IE) (association api.PFCPAssociationInterface, err error) {
+	peer, err := newPFCPPeerUP(e, nodeID)
+	if err != nil {
+		return nil, err
+	}
+	if e.RecoveryTimeStamp == nil {
+		return nil, fmt.Errorf("Local PFCP entity is not started")
+	}
+	nid, err := nodeID.NodeID()
+	if err != nil {
+		return nil, err
+	}
+	if !e.associationsMap.CheckNonExist(nid) {
+		return nil, fmt.Errorf("Association already exists")
+	}
+	a, err := peer.NewEstablishedPFCPAssociation()
+	if err != nil {
+		return nil, err
+	}
+	if err := e.associationsMap.Add(a); err != nil {
+		return nil, err
+	}
+	return a, nil
+
+}
+
+func (e *PFCPEntity) Start() error {
+	if err := e.listen(); err != nil {
+		return err
+	}
+	buf := make([]byte, pfcputil.DEFAULT_MTU) // TODO: get MTU of interface instead of using DEFAULT_MTU
+	go func() error {
+		for {
+			n, addr, err := e.conn.ReadFrom(buf)
+			if err != nil {
+				return err
+			}
+			msg, err := message.Parse(buf[:n])
+			if err != nil {
+				// undecodable pfcp message
+				continue
+			}
+			f, err := e.GetHandler(msg.MessageType())
+			if err != nil {
+				log.Println(err)
+			}
+			err = f(ReceivedMessage{Message: msg, SenderAddr: addr, Entity: e})
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}()
+	return nil
+}
+
+func (e *PFCPEntity) IsUserPlane() bool {
+	return e.kind == "CP"
+}
+
+func (e *PFCPEntity) IsControlPlane() bool {
+	return e.kind == "UP"
 }

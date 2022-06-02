@@ -6,23 +6,24 @@ Still a Work In Progress. API may change before v1.0.0.
 - PFCP Sessions handling (currently only PFCP Session establishment procedure is supported)
 
 ## Getting started
-### Server (UPF)
+### UPF
 
 ```golang
-upNode := NewPFCPServerEntity(upAddress)
+upNode := NewPFCPEntityUP(upAddress)
 upNode.Start()
+// Access list of associations
+associations := upNode.GetPFCPAssociations()
 // Access list of sessions
 sessions := upNode.GetPFCPSessions()
 ```
 
-### Client (SMF)
+### SMF
 
 ```golang
-cpNode := NewPFCPClientEntity(cpAddress)
+cpNode := NewPFCPEntityCP(cpAddress)
 cpNode.Start()
-peer, _ := NewPFCPPeer(cpNode, pfcputils.CreateNodeID(nodeID)
-a, _ := cpNode.NewPFCPAssociation(peer)
-a.NewPFCPSession(cpNode.GetNextRemoteSessionID(), pdrs, fars)
+association, _ := cpNode.NewEstablishedAssociation(pfcputils.CreateNodeID(nodeID))
+a.NewPFCPSession(pdrs, fars)
 
 ```
 

@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
 	"github.com/louisroyer/go-pfcp-networking/pfcputil"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
@@ -18,18 +19,32 @@ import (
 
 type messageChan chan []byte
 
+// A PFCPPeer is a remote PFCPEntity
 type PFCPPeer struct {
-	NodeID  *ie.IE
-	Srv     PFCPEntityInterface
+	nodeID  *ie.IE
+	srv     api.PFCPEntityInterface
 	conn    *net.UDPConn
 	udpAddr *net.UDPAddr
 	seq     uint32
+	seqMu   sync.Mutex
 	queue   map[uint32]messageChan
-	mu      sync.Mutex
+	queueMu sync.Mutex
 	stop    bool
+	kind    string
 }
 
-func NewPFCPPeer(srv PFCPEntityInterface, nodeID *ie.IE) (peer *PFCPPeer, err error) {
+func (peer *PFCPPeer) NewEstablishedPFCPAssociation() (api.PFCPAssociationInterface, error) {
+	return newEstablishedPFCPAssociation(peer)
+}
+
+func (peer *PFCPPeer) LocalEntity() api.PFCPEntityInterface {
+	return peer.srv
+}
+
+func (peer *PFCPPeer) NodeID() *ie.IE {
+	return peer.nodeID
+}
+func newPFCPPeer(srv api.PFCPEntityInterface, nodeID *ie.IE, kind string) (peer *PFCPPeer, err error) {
 	ipAddr, err := nodeID.NodeID()
 	if err != nil {
 		return nil, err
@@ -50,85 +65,113 @@ func NewPFCPPeer(srv PFCPEntityInterface, nodeID *ie.IE) (peer *PFCPPeer, err er
 		return nil, err
 	}
 	p := PFCPPeer{
-		Srv:     srv,
-		NodeID:  nodeID,
+		srv:     srv,
+		nodeID:  nodeID,
 		conn:    conn,
 		udpAddr: raddr,
 		seq:     1,
+		seqMu:   sync.Mutex{},
 		queue:   make(map[uint32]messageChan),
-		mu:      sync.Mutex{},
+		queueMu: sync.Mutex{},
 		stop:    false,
+		kind:    kind,
 	}
 	// Read incomming messages
-	go func(e PFCPPeer) {
-		var stop bool = false
-		for !stop {
-			b := make([]byte, pfcputil.DEFAULT_MTU) // TODO: detect MTU for interface instead of using DEFAULT_MTU
-			n, _, err := e.conn.ReadFromUDP(b)
-			if err != nil {
-				// socket has been closed
-				return
-			}
-			msg, err := message.ParseHeader(b[:n])
-			if err != nil {
-				e.mu.Lock()
-				stop = e.stop
-				e.mu.Unlock()
-				if stop {
-					return
-				} else {
-					continue
-				}
-			}
-			sn := msg.SequenceNumber
-			e.mu.Lock()
-			ch, exists := e.queue[sn]
-			if exists {
-				ch <- b[:n]
-			}
-			stop = e.stop
-			e.mu.Unlock()
-		}
-	}(p)
+	p.start()
 	return &p, nil
+}
+
+func newPFCPPeerUP(srv api.PFCPEntityInterface, nodeID *ie.IE) (peer *PFCPPeer, err error) {
+	return newPFCPPeer(srv, nodeID, "UP")
+}
+func newPFCPPeerCP(srv api.PFCPEntityInterface, nodeID *ie.IE) (peer *PFCPPeer, err error) {
+	return newPFCPPeer(srv, nodeID, "CP")
+}
+
+func (peer *PFCPPeer) IsUserPlane() bool {
+	return peer.kind == "UP"
+}
+
+func (peer *PFCPPeer) IsControlPlane() bool {
+	return peer.kind == "CP"
+}
+
+func (peer *PFCPPeer) start() {
+	go func(e *PFCPPeer) {
+		e.startLoop()
+	}(peer)
+}
+func (peer *PFCPPeer) startLoop() {
+	for peer.IsRunning() {
+		peer.loopUnwrapped()
+	}
+}
+
+func (peer *PFCPPeer) loopUnwrapped() {
+	b := make([]byte, pfcputil.DEFAULT_MTU) // TODO: detect MTU for interface instead of using DEFAULT_MTU
+	n, _, err := peer.conn.ReadFromUDP(b)
+	if err != nil {
+		// socket has been closed
+		return
+	}
+	// Processing of message in a new thread to avoid blocking
+	go func(msgArray []byte, size int, e *PFCPPeer) {
+		msg, err := message.ParseHeader(msgArray[:size])
+		if err != nil {
+			return
+		}
+		sn := msg.SequenceNumber
+
+		e.queueMu.Lock()
+		defer e.queueMu.Unlock()
+		ch, exists := e.queue[sn]
+		if exists {
+			ch <- msgArray[:size]
+		}
+	}(b, n, peer)
+}
+
+func (peer *PFCPPeer) IsRunning() bool {
+	return peer.stop
 }
 
 // Close connection of PFCPPeer
 func (peer *PFCPPeer) Close() error {
-	peer.mu.Lock()
-	if !peer.stop {
-		peer.stop = true
-		err := peer.conn.Close()
-		if err != nil {
-			return err
-		}
+	// if already stopped, for whatever reason, we exit
+	if peer.stop {
+		return nil
 	}
-	peer.mu.Unlock()
+	// setting stop state and closing connection
+	peer.stop = true
+	err := peer.conn.Close()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 // Get next sequence number available for this PFCPPeer
 func (peer *PFCPPeer) getNextSequenceNumber() uint32 {
-	peer.mu.Lock()
+	peer.seqMu.Lock()
+	defer peer.seqMu.Unlock()
 	s := peer.seq
 	peer.seq += 1
-	peer.mu.Unlock()
 	return s
 }
 
 // Add a message to queue. Response will be send to channel ch messageChan
 func (peer *PFCPPeer) addToQueue(sn uint32, ch messageChan) {
-	peer.mu.Lock()
+	peer.queueMu.Lock()
+	defer peer.queueMu.Unlock()
 	peer.queue[sn] = ch
-	peer.mu.Unlock()
 }
 
 // Remove a message from queue (used when a response is received, or when timeout is reached)
 func (peer *PFCPPeer) deleteFromQueue(sn uint32) {
-	peer.mu.Lock()
+	peer.queueMu.Lock()
+	defer peer.queueMu.Unlock()
 	close(peer.queue[sn])
 	delete(peer.queue, sn)
-	peer.mu.Unlock()
 }
 
 // Send a PFCP message
@@ -188,12 +231,12 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 
 // Send an Heartbeat request, return true if the PFCP peer is alive.
 func (peer *PFCPPeer) IsAlive() (res bool, err error) {
-	if peer.Srv.RecoveryTimeStamp() == nil {
-		return false, fmt.Errorf("PFCP server entity is not started.")
+	if peer.LocalEntity().RecoveryTimeStamp() == nil {
+		return false, fmt.Errorf("Local PFCP Entity is not yet started.")
 	}
 	hreq := message.NewHeartbeatRequest(
 		0,
-		peer.Srv.RecoveryTimeStamp(),
+		peer.LocalEntity().RecoveryTimeStamp(),
 		nil)
 
 	_, err = peer.Send(hreq)

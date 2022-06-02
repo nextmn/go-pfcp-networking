@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
+	pfcprule "github.com/louisroyer/go-pfcp-networking/pfcprules"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -33,6 +34,15 @@ func newEstablishedPFCPAssociation(peer api.PFCPPeerInterface) (api.PFCPAssociat
 		return nil, err
 	}
 	return association, nil
+}
+
+// Get next available SEID for this PFCPAssociation.
+// SEID are not globally unique, F-SEID are globally unique.
+// F-SEID are constitued of IPv4 and/or IPv6 address(es) of the peer
+// plus the SEID. So as long as SEID are unique per peer (i.e. per PFCPAssociation),
+// everything should be okay.
+func (association PFCPAssociation) GetNextSEID() uint64 {
+	return association.sessionIDPool.GetNext()
 }
 
 // Setup a PFCPAssociation with the PFCP Association Setup by the CP Function Procedure
@@ -138,64 +148,54 @@ func (association *PFCPAssociation) getFSEID(seid uint64) (*ie.IE, error) {
 	return localFseid, nil
 }
 
-//func (association *PFCPAssociation) CreateSession(localSEID uint64, remoteFseid *ie.IE, pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session *PFCPSession, err error) {
-//	localFseid, err := association.getFSEID(localSEID)
-//	if err != nil {
-//		return nil, err
-//	}
-//	s := NewPFCPSession(localFseid, remoteFseid)
-//	tmpPDR := make(map[uint16]*pfcprule.PDR)
-//	if pdrs == nil {
-//		return nil, fmt.Errorf("No PDR in session")
-//	}
-//	log.Println("Adding", len(pdrs), "PDRs to session")
-//	for _, pdr := range pdrs {
-//		if pdr == nil {
-//			log.Println("A PDR is nil")
-//			continue
-//		}
-//		id, err := pdr.ID()
-//		if err != nil {
-//			return nil, err
-//		}
-//		tmpPDR[id] = pdr
-//	}
-//	tmpFAR := make(map[uint32]*pfcprule.FAR)
-//	if fars == nil {
-//		return nil, fmt.Errorf("No FAR in session")
-//	}
-//	log.Println("Adding", len(fars), "FARs to session")
-//	for _, far := range fars {
-//		if far == nil {
-//			log.Println("A FAR is nil")
-//			continue
-//		}
-//		id, err := far.ID()
-//		if err != nil {
-//			return nil, err
-//		}
-//		tmpFAR[id] = far
-//	}
-//	s.AddPDRsFARs(tmpPDR, tmpFAR)
-//	association.muSessions.Lock()
-//	defer association.muSessions.Unlock()
-//	association.sessions[localSEID] = &s
-//	return &s, nil
-//}
-//
-//func (association *PFCPAssociation) NewPFCPSession(pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session *RemotePFCPSession, err error) {
-//	localFseid, err := association.getFSEID(association.sessionIDPool.GetNext())
-//	if err != nil {
-//		return nil, err
-//	}
-//	s := NewRemotePFCPSession(localFseid, association)
-//	s.Start(pdrs, fars)
-//	association.muRemoteSessions.Lock()
-//	defer association.muRemoteSessions.Unlock()
-//	association.remoteSessions[localSEID] = &s
-//	return &s, nil
-//}
-//
+func (association *PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session api.PFCPSessionInterface, err error) {
+	// Generation of the F-SEID
+	localSEID := association.GetNextSEID()
+	localFseid, err := association.getFSEID(localSEID)
+	if err != nil {
+		return nil, err
+	}
+	// Checking PDRs, and FARs
+	tmpPDR := make(map[uint16]*pfcprule.PDR)
+	if pdrs == nil {
+		return nil, fmt.Errorf("No PDR in session")
+	}
+	log.Println("Adding", len(pdrs), "PDRs to session")
+	for _, pdr := range pdrs {
+		if pdr == nil {
+			log.Println("A PDR is nil")
+			continue
+		}
+		id, err := pdr.ID()
+		if err != nil {
+			return nil, err
+		}
+		tmpPDR[id] = pdr
+	}
+	tmpFAR := make(map[uint32]*pfcprule.FAR)
+	if fars == nil {
+		return nil, fmt.Errorf("No FAR in session")
+	}
+	log.Println("Adding", len(fars), "FARs to session")
+	for _, far := range fars {
+		if far == nil {
+			log.Println("A FAR is nil")
+			continue
+		}
+		id, err := far.ID()
+		if err != nil {
+			return nil, err
+		}
+		tmpFAR[id] = far
+	}
+	// Creation of a PFCP Session
+	s, err := newEstablishedPFCPSession(association, localFseid, remoteFseid, tmpPDR, tmpFAR)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
 // Safe function to create FSEID
 func NewFSEID(seid uint64, v4, v6 *net.IPAddr) (*ie.IE, error) {
 	if v4 == nil && v6 == nil {

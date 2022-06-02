@@ -23,5 +23,5 @@ type PFCPSessionInterface interface {
 	GetFAR(farid uint32) (*pfcprule.FAR, error)
 	AddPDRsFARs(pdrs map[uint16]*pfcprule.PDR, fars map[uint32]*pfcprule.FAR)
 	SetRemoteFSEID(FSEID *ie.IE)
-	Setup(pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) error
+	Setup() error
 }

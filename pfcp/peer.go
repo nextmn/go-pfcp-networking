@@ -151,6 +151,10 @@ func (peer *PFCPPeer) Close() error {
 }
 
 // Get next sequence number available for this PFCPPeer
+// Sequence murber shall be unique for each oustanding
+// message sourced from the same IP/UDP endpoint.
+// Since we use exactly 1 IP/UDP endpoint per peer to send Requests,
+// our sequence numbers are also unique per peer.
 func (peer *PFCPPeer) getNextSequenceNumber() uint32 {
 	peer.seqMu.Lock()
 	defer peer.seqMu.Unlock()

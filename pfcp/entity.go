@@ -21,15 +21,22 @@ import (
 type handler = func(receivedMessage ReceivedMessage) error
 
 type PFCPEntity struct {
-	nodeID              *ie.IE
-	recoveryTimeStamp   *ie.IE
-	handlers            map[pfcputil.MessageType]handler
-	conn                *net.UDPConn
-	connMu              sync.Mutex
-	nextRemoteSessionID uint64
-	muSessionID         sync.Mutex
-	associationsMap     AssociationsMap
-	kind                string // "CP" or "UP"
+	nodeID            *ie.IE
+	recoveryTimeStamp *ie.IE
+	handlers          map[pfcputil.MessageType]handler
+	conn              *net.UDPConn
+	connMu            sync.Mutex
+	associationsMap   AssociationsMap
+	// each session is associated with a specific PFCPAssociation
+	// (can be changed with some requests)
+	// UP function receives them from CP functions
+	// CP function send them to UP functions
+	sessionsMap SessionsMap
+	kind        string // "CP" or "UP"
+}
+
+func (e *PFCPEntity) AddSession(session api.PFCPSessionInterface) {
+	e.sessionsMap.Add(session)
 }
 
 func (e *PFCPEntity) SendTo(msg []byte, dst net.Addr) error {
@@ -39,14 +46,6 @@ func (e *PFCPEntity) SendTo(msg []byte, dst net.Addr) error {
 		return err
 	}
 	return nil
-}
-
-func (e *PFCPEntity) GetNextRemoteSessionID() uint64 {
-	e.muSessionID.Lock()
-	defer e.muSessionID.Unlock()
-	id := e.nextRemoteSessionID
-	e.nextRemoteSessionID = id + 1
-	return id
 }
 
 func (e *PFCPEntity) NodeID() *ie.IE {
@@ -64,15 +63,13 @@ func newDefaultPFCPEntityHandlers() map[pfcputil.MessageType]handler {
 
 func NewPFCPEntity(nodeID string, kind string) PFCPEntity {
 	return PFCPEntity{
-		nodeID:              ie.NewNodeIDHeuristic(nodeID),
-		recoveryTimeStamp:   nil,
-		handlers:            newDefaultPFCPEntityHandlers(),
-		conn:                nil,
-		connMu:              sync.Mutex{},
-		nextRemoteSessionID: 1,
-		muSessionID:         sync.Mutex{},
-		associationsMap:     NewAssociationsMap(),
-		kind:                kind,
+		nodeID:            ie.NewNodeIDHeuristic(nodeID),
+		recoveryTimeStamp: nil,
+		handlers:          newDefaultPFCPEntityHandlers(),
+		conn:              nil,
+		connMu:            sync.Mutex{},
+		associationsMap:   NewAssociationsMap(),
+		kind:              kind,
 	}
 }
 

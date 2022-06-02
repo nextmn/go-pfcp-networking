@@ -20,7 +20,7 @@ import (
 
 type PFCPSession struct {
 	isEstablished bool
-	association   *PFCPAssociation
+	association   api.PFCPAssociationInterface // is used to send Request type PFCP Messages
 	// When Peer A send a message (M) to Peer B
 	// M.PFCPHeader.SEID = B.LocalSEID() = A.RemoteSEID()
 	// M.IPHeader.IP_DST = B.LocalIPAddress = A.RemoteIPAddress()
@@ -32,28 +32,26 @@ type PFCPSession struct {
 	atomicMu    sync.Mutex // allows to perform atomic operations
 }
 
-func NewUnestablishedPFCPSession(fseid, rseid *ie.IE) api.PFCPSessionInterface {
-	return PFCPSession{
+func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid, rseid *ie.IE, pdrs map[uint16]*pfcprule.PDR, fars map[uint32]*pfcprule.FAR) (api.PFCPSessionInterface, error) {
+	s := PFCPSession{
 		isEstablished: false,
+		association:   association,
 		localFseid:    fseid, // local F-SEID
 		remoteFseid:   rseid, // SEID present in FSEID ie send by remote peer
-		pdr:           make(map[uint16]*pfcprule.PDR),
-		far:           make(map[uint32]*pfcprule.FAR),
+		pdr:           pdrs,
+		far:           fars,
 		sortedPDR:     make(pfcprule.PDRs, 0),
 		atomicMu:      sync.Mutex{},
 	}
-}
-
-func NewEstablishedPFCPSession(fseid, rseid *ie.IE) api.PFCPSessionInterface {
-	return PFCPSession{
-		isEstablished: true,
-		localFseid:    fseid, // local F-SEID
-		remoteFseid:   rseid, // SEID present in FSEID ie send by remote peer
-		pdr:           make(map[uint16]*pfcprule.PDR),
-		far:           make(map[uint32]*pfcprule.FAR),
-		sortedPDR:     make(pfcprule.PDRs, 0),
-		atomicMu:      sync.Mutex{},
+	// sort PDRs
+	for _, p := range pdrs {
+		s.sortedPDR = append(s.sortedPDR, p)
 	}
+	sort.Sort(s.sortedPDR)
+	if err := s.Setup(); err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 
 func (s PFCPSession) LocalFSEID() *ie.IE {
@@ -152,48 +150,59 @@ func (s PFCPSession) SetRemoteFSEID(FSEID *ie.IE) {
 
 }
 
-func (s PFCPSession) Setup(pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) error {
+func (s PFCPSession) Setup() error {
 	if s.isEstablished {
 		return fmt.Errorf("Session is already establihed")
 	}
-	// first add to temporary map to avoid erroring after msg is send
-	tmpPDR := make(map[uint16]*pfcprule.PDR)
-	for _, pdr := range pdrs {
-		id, err := pdr.ID()
-		if err != nil {
-			return err
+	switch {
+	case s.association.LocalEntity().IsUserPlane():
+		// Nothing more to do
+		s.isEstablished = true
+		return nil
+	case s.association.LocalEntity().IsControlPlane():
+		// Send PFCP Session Setup Request
+		// first add to temporary map to avoid erroring after msg is send
+		tmpPDR := make(map[uint16]*pfcprule.PDR)
+		for _, pdr := range s.pdr {
+			id, err := pdr.ID()
+			if err != nil {
+				return err
+			}
+			tmpPDR[id] = pdr
 		}
-		tmpPDR[id] = pdr
-	}
-	tmpFAR := make(map[uint32]*pfcprule.FAR)
-	for _, far := range fars {
-		id, err := far.ID()
-		if err != nil {
-			return err
+		tmpFAR := make(map[uint32]*pfcprule.FAR)
+		for _, far := range s.far {
+			id, err := far.ID()
+			if err != nil {
+				return err
+			}
+			tmpFAR[id] = far
 		}
-		tmpFAR[id] = far
-	}
-	ies := make([]*ie.IE, 0)
-	ies = append(ies, s.association.LocalEntity().NodeID())
-	ies = append(ies, s.localFseid)
-	for _, pdr := range pfcprule.NewCreatePDRs(pdrs) {
-		ies = append(ies, pdr)
-	}
-	for _, far := range pfcprule.NewCreateFARs(fars) {
-		ies = append(ies, far)
-	}
+		ies := make([]*ie.IE, 0)
+		ies = append(ies, s.association.LocalEntity().NodeID())
+		ies = append(ies, s.localFseid)
+		for _, pdr := range pfcprule.NewCreatePDRs(s.pdr) {
+			ies = append(ies, pdr)
+		}
+		for _, far := range pfcprule.NewCreateFARs(s.far) {
+			ies = append(ies, far)
+		}
 
-	msg := message.NewSessionEstablishmentRequest(0, 0, 0, 0, 0, ies...)
-	resp, err := s.association.Send(msg)
-	if err != nil {
-		return err
+		msg := message.NewSessionEstablishmentRequest(0, 0, 0, 0, 0, ies...)
+		resp, err := s.association.Send(msg)
+		if err != nil {
+			return err
+		}
+		ser, ok := resp.(*message.SessionEstablishmentResponse)
+		if !ok {
+			log.Printf("got unexpected message: %s\n", resp.MessageTypeName())
+		}
+		s.remoteFseid = ser.UPFSEID
+		s.AddPDRsFARs(tmpPDR, tmpFAR)
+		s.isEstablished = true
+		return nil
+	default:
+		return fmt.Errorf("Local PFCP entity is not a CP or a UP function")
 	}
-	ser, ok := resp.(*message.SessionEstablishmentResponse)
-	if !ok {
-		log.Printf("got unexpected message: %s\n", resp.MessageTypeName())
-	}
-	s.remoteFseid = ser.UPFSEID
-	s.AddPDRsFARs(tmpPDR, tmpFAR)
-	s.isEstablished = true
 	return nil
 }

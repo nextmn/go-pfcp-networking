@@ -17,3 +17,7 @@ type SessionsMap struct {
 	sessions   sessionsMapFSEID
 	muSessions sync.Mutex
 }
+
+func (sm *SessionsMap) Add(session api.PFCPSessionInterface) {
+	//TODO
+}

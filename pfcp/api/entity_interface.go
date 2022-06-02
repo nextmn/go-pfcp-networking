@@ -20,7 +20,6 @@ type PFCPEntityInterface interface {
 	NewEstablishedPFCPAssociation(nodeID *ie.IE) (association PFCPAssociationInterface, err error)
 	RemovePFCPAssociation(association PFCPAssociationInterface) error
 	GetPFCPAssociation(nid string) (association PFCPAssociationInterface, err error)
-	GetNextRemoteSessionID() uint64
 	//GetLocalSessions() PFCPSessionMapSEID
 	SendTo(msg []byte, dst net.Addr) error
 }

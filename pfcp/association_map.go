@@ -15,13 +15,13 @@ import (
 type associationsMap = map[string]api.PFCPAssociationInterface
 type AssociationsMap struct {
 	associations   associationsMap
-	muAssociations sync.Mutex
+	muAssociations sync.RWMutex
 }
 
 func NewAssociationsMap() AssociationsMap {
 	return AssociationsMap{
 		associations:   make(associationsMap),
-		muAssociations: sync.Mutex{},
+		muAssociations: sync.RWMutex{},
 	}
 }
 
@@ -55,6 +55,8 @@ func (a *AssociationsMap) Add(association api.PFCPAssociationInterface) error {
 
 // Returns an existing PFCP Association
 func (a *AssociationsMap) Get(nid string) (association api.PFCPAssociationInterface, err error) {
+	a.muAssociations.RLock()
+	defer a.muAssociations.RUnlock()
 	if asso, exists := a.associations[nid]; exists {
 		return asso, nil
 	}
@@ -63,6 +65,8 @@ func (a *AssociationsMap) Get(nid string) (association api.PFCPAssociationInterf
 
 // Returns true if the association does not exist
 func (a *AssociationsMap) CheckNonExist(nid string) bool {
+	a.muAssociations.RLock()
+	defer a.muAssociations.RUnlock()
 	if _, exists := a.associations[nid]; exists {
 		return false
 	}

@@ -34,8 +34,10 @@ type PFCPSession struct {
 	// sortedPDR is used to perform PDR finding using PDI Matching
 	sortedPDR pfcprule.PDRs
 	// FAR Map allow to retrieve a specific FAR by its ID
-	far      pfcprule.FARMap
-	atomicMu sync.Mutex // allows to perform atomic operations
+	far pfcprule.FARMap
+	// allows to perform atomic operations
+	// This RWMutex applies on sortedPDR, pdr, and far
+	atomicMu sync.RWMutex
 }
 
 // Create an EstablishedPFCPSession
@@ -50,7 +52,7 @@ func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid, 
 		pdr:           pdrs,
 		far:           fars,
 		sortedPDR:     make(pfcprule.PDRs, 0),
-		atomicMu:      sync.Mutex{},
+		atomicMu:      sync.RWMutex{},
 	}
 	// sort PDRs
 	for _, p := range pdrs {
@@ -136,13 +138,15 @@ func (s PFCPSession) RemoteIPAddress() (net.IP, error) {
 // look first at the first item of the array,
 // look last at the last item of the array.
 func (s PFCPSession) GetPDRs() pfcprule.PDRs {
-	s.atomicMu.Lock()
-	defer s.atomicMu.Unlock()
+	s.atomicMu.RLock()
+	defer s.atomicMu.RUnlock()
 	return s.sortedPDR
 }
 
 // Get FAR associated with this FARID
 func (s PFCPSession) GetFAR(farid pfcprule.FARID) (*pfcprule.FAR, error) {
+	s.atomicMu.RLock()
+	defer s.atomicMu.RUnlock()
 	if far, ok := s.far[farid]; ok {
 		return far, nil
 	}

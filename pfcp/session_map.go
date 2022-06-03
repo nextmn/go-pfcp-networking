@@ -15,9 +15,10 @@ type sessionsMapSEID = map[api.SEID]api.PFCPSessionInterface
 type sessionsMapFSEID = map[string]sessionsMapSEID
 type SessionsMap struct {
 	sessions   sessionsMapFSEID
-	muSessions sync.Mutex
+	muSessions sync.RWMutex
 }
 
+// Add a session to the map
 func (sm *SessionsMap) Add(session api.PFCPSessionInterface) error {
 	sm.muSessions.Lock()
 	defer sm.muSessions.Unlock()
@@ -40,15 +41,18 @@ func (sm *SessionsMap) Add(session api.PFCPSessionInterface) error {
 	return nil
 }
 
+// Create a new SessionMap
 func NewSessionsMap() SessionsMap {
 	return SessionsMap{
 		sessions:   make(sessionsMapFSEID, 0),
-		muSessions: sync.Mutex{},
+		muSessions: sync.RWMutex{},
 	}
 }
 
 // Returns pfcpsessions in an array
 func (sm *SessionsMap) GetPFCPSessions() []api.PFCPSessionInterface {
+	sm.muSessions.RLock()
+	defer sm.muSessions.RUnlock()
 	sessions := make([]api.PFCPSessionInterface, 0)
 	for _, byseid := range sm.sessions {
 		for _, session := range byseid {

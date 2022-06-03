@@ -33,25 +33,3 @@ func (e *PFCPEntityUP) initDefaultHandlers() error {
 	}
 	return nil
 }
-
-//func (e *PFCPEntityUP) GetLocalSessions() PFCPSessionMapSEID {
-//	// TODO: Store Session global map directly in the entity and only store array of SEIDs in association
-//	var s PFCPSessionMapSEID
-//	for _, a := range e.associations {
-//		for k, v := range a.GetSessions() {
-//			s[k] = v
-//		}
-//	}
-//	return s
-//}
-
-//func (e *PFCPEntityUP) GetPFCPSessions() []*PFCPSession {
-//	sessions := make([]*PFCPSession, 0)
-//	for _, a := range e.associations {
-//		as := a.GetSessions()
-//		for _, s := range as {
-//			sessions = append(sessions, s)
-//		}
-//	}
-//	return sessions
-//}

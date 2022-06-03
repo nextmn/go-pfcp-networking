@@ -15,7 +15,7 @@ type PFCPEntityUP struct {
 	PFCPEntity
 }
 
-func NewPFCPSEntityUP(nodeID string) *PFCPEntityUP {
+func NewPFCPEntityUP(nodeID string) *PFCPEntityUP {
 	e := PFCPEntityUP{PFCPEntity: NewPFCPEntity(nodeID, "UP")}
 	err := e.initDefaultHandlers()
 	if err != nil {

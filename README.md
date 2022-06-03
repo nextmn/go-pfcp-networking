@@ -22,7 +22,7 @@ sessions := upNode.GetPFCPSessions()
 ```golang
 cpNode := NewPFCPEntityCP(SMFADDR)
 cpNode.Start()
-association, _ := cpNode.NewEstablishedAssociation(pfcputils.CreateNodeID(UPFADDR))
+association, _ := cpNode.NewEstablishedAssociation(ie.NewNodeIDHeuristic(UPFADDR))
 session, _ := a.CreateSession(pdrs, fars)
 
 ```

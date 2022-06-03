@@ -41,7 +41,7 @@ func newEstablishedPFCPAssociation(peer api.PFCPPeerInterface) (api.PFCPAssociat
 // F-SEID are constitued of IPv4 and/or IPv6 address(es) of the peer
 // plus the SEID. So as long as SEID are unique per peer (i.e. per PFCPAssociation),
 // everything should be okay.
-func (association PFCPAssociation) GetNextSEID() uint64 {
+func (association PFCPAssociation) GetNextSEID() api.SEID {
 	return association.sessionIDPool.GetNext()
 }
 
@@ -111,7 +111,7 @@ func (association *PFCPAssociation) heartMonitoring() error {
 }
 
 // Generate a local FSEID IE for the session (to be created) identified by a given SEID
-func (association *PFCPAssociation) getFSEID(seid uint64) (*ie.IE, error) {
+func (association *PFCPAssociation) getFSEID(seid api.SEID) (*ie.IE, error) {
 	ieNodeID := association.LocalEntity().NodeID()
 	nodeID, err := ieNodeID.NodeID()
 	if err != nil {
@@ -148,7 +148,7 @@ func (association *PFCPAssociation) getFSEID(seid uint64) (*ie.IE, error) {
 	return localFseid, nil
 }
 
-func (association *PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs []*pfcprule.PDR, fars []*pfcprule.FAR) (session api.PFCPSessionInterface, err error) {
+func (association PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs pfcprule.PDRs, fars pfcprule.FARs) (session api.PFCPSessionInterface, err error) {
 	// Generation of the F-SEID
 	localSEID := association.GetNextSEID()
 	localFseid, err := association.getFSEID(localSEID)
@@ -156,7 +156,7 @@ func (association *PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs []*pf
 		return nil, err
 	}
 	// Checking PDRs, and FARs
-	tmpPDR := make(map[uint16]*pfcprule.PDR)
+	tmpPDR := make(pfcprule.PDRMap)
 	if pdrs == nil {
 		return nil, fmt.Errorf("No PDR in session")
 	}
@@ -172,7 +172,7 @@ func (association *PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs []*pf
 		}
 		tmpPDR[id] = pdr
 	}
-	tmpFAR := make(map[uint32]*pfcprule.FAR)
+	tmpFAR := make(pfcprule.FARMap)
 	if fars == nil {
 		return nil, fmt.Errorf("No FAR in session")
 	}
@@ -188,7 +188,7 @@ func (association *PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs []*pf
 		}
 		tmpFAR[id] = far
 	}
-	// Creation of a PFCP Session
+	// Establishment of a PFCP Session if CP / Creation if UP
 	s, err := newEstablishedPFCPSession(association, localFseid, remoteFseid, tmpPDR, tmpFAR)
 	if err != nil {
 		return nil, err
@@ -197,7 +197,7 @@ func (association *PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs []*pf
 }
 
 // Safe function to create FSEID
-func NewFSEID(seid uint64, v4, v6 *net.IPAddr) (*ie.IE, error) {
+func NewFSEID(seid api.SEID, v4, v6 *net.IPAddr) (*ie.IE, error) {
 	if v4 == nil && v6 == nil {
 		return nil, fmt.Errorf("Cannot create FSEID with no IP Address")
 	}

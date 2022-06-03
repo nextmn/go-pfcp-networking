@@ -35,8 +35,13 @@ type PFCPEntity struct {
 	kind        string // "CP" or "UP"
 }
 
-func (e *PFCPEntity) AddSession(session api.PFCPSessionInterface) {
-	e.sessionsMap.Add(session)
+// Add an Established PFCP Session
+func (e *PFCPEntity) AddEstablishedPFCPSession(session api.PFCPSessionInterface) error {
+	return e.sessionsMap.Add(session)
+}
+
+func (e *PFCPEntity) GetPFCPSessions() []api.PFCPSessionInterface {
+	return e.sessionsMap.GetPFCPSessions()
 }
 
 func (e *PFCPEntity) SendTo(msg []byte, dst net.Addr) error {
@@ -69,6 +74,7 @@ func NewPFCPEntity(nodeID string, kind string) PFCPEntity {
 		conn:              nil,
 		connMu:            sync.Mutex{},
 		associationsMap:   NewAssociationsMap(),
+		sessionsMap:       NewSessionsMap(),
 		kind:              kind,
 	}
 }
@@ -125,16 +131,6 @@ func (e *PFCPEntity) AddHandlers(funcs map[pfcputil.MessageType]handler) error {
 		e.handlers[t] = h
 	}
 	return nil
-}
-
-// Add an (already established) association to the association table
-func (e *PFCPEntity) AddPFCPAssociation(association api.PFCPAssociationInterface) error {
-	// TODO:
-	// if the PFCP Association for this nid was already established:
-	// 1. if PFCP Session Retention Information was received in the request: retain existing (local) sessions and set PSREI flag to 1 in response
-	//    else: delete existing sessions
-	// 2. delete previous association
-	return e.associationsMap.Add(association)
 }
 
 // Remove an association from the association table

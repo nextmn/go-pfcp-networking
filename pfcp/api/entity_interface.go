@@ -16,10 +16,11 @@ type PFCPEntityInterface interface {
 	IsControlPlane() bool
 	NodeID() *ie.IE
 	RecoveryTimeStamp() *ie.IE
-	AddPFCPAssociation(association PFCPAssociationInterface) error
 	NewEstablishedPFCPAssociation(nodeID *ie.IE) (association PFCPAssociationInterface, err error)
 	RemovePFCPAssociation(association PFCPAssociationInterface) error
 	GetPFCPAssociation(nid string) (association PFCPAssociationInterface, err error)
 	//GetLocalSessions() PFCPSessionMapSEID
 	SendTo(msg []byte, dst net.Addr) error
+	GetPFCPSessions() []PFCPSessionInterface
+	AddEstablishedPFCPSession(session PFCPSessionInterface) error
 }

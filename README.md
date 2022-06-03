@@ -9,7 +9,7 @@ Still a Work In Progress. API may change before v1.0.0.
 ### UPF
 
 ```golang
-upNode := NewPFCPEntityUP(upAddress)
+upNode := NewPFCPEntityUP(UPFADDR)
 upNode.Start()
 // Access list of associations
 associations := upNode.GetPFCPAssociations()
@@ -20,10 +20,10 @@ sessions := upNode.GetPFCPSessions()
 ### SMF
 
 ```golang
-cpNode := NewPFCPEntityCP(cpAddress)
+cpNode := NewPFCPEntityCP(SMFADDR)
 cpNode.Start()
-association, _ := cpNode.NewEstablishedAssociation(pfcputils.CreateNodeID(nodeID))
-a.NewPFCPSession(pdrs, fars)
+association, _ := cpNode.NewEstablishedAssociation(pfcputils.CreateNodeID(UPFADDR))
+session, _ := a.CreateSession(pdrs, fars)
 
 ```
 

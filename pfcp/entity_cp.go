@@ -13,14 +13,3 @@ func NewPFCPEntityCP(nodeID string) *PFCPEntityCP {
 	e := PFCPEntityCP{PFCPEntity: NewPFCPEntity(nodeID, "CP")}
 	return &e
 }
-
-//func (e *PFCPEntityCP) GetLocalSessions() PFCPSessionMapSEID {
-//	// TODO: Store Session global map directly in the entity and only store array of SEIDs in association
-//	var s PFCPSessionMapSEID
-//	for _, a := range e.associations {
-//		for k, v := range a.GetSessions() {
-//			s[k] = v
-//		}
-//	}
-//	return s
-//}

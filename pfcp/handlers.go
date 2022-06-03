@@ -7,10 +7,12 @@ package pfcp_networking
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 
 	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
+	pfcprule "github.com/louisroyer/go-pfcp-networking/pfcprules"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -50,106 +52,105 @@ func handleAssociationSetupRequest(msg ReceivedMessage) error {
 }
 
 func handleSessionEstablishmentRequest(msg ReceivedMessage) error {
-	//	log.Println("Received Session Establishment Request")
-	//	m, ok := msg.Message.(*message.SessionEstablishmentRequest)
-	//	if !ok {
-	//		return fmt.Errorf("Issue with Session Establishment Request")
-	//	}
-	//
-	//	// If F-SEID is missing or malformed, SEID shall be set to 0
-	//	var rseid uint64 = 0
-	//
-	//	// CP F-SEID is a mandatory IE
-	//	// The PFCP entities shall accept any new IP address allocated as part of F-SEID
-	//	// other than the one(s) communicated in the Node ID during Association Establishment Procedure
-	//	if m.CPFSEID == nil {
-	//		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.FSEID))
-	//		return msg.ReplyTo(res)
-	//	}
-	//	fseid, err := m.CPFSEID.FSEID()
-	//	if err != nil {
-	//		cause := ie.CauseMandatoryIEIncorrect
-	//		if err == io.ErrUnexpectedEOF {
-	//			cause = ie.CauseInvalidLength
-	//		}
-	//		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(ie.FSEID))
-	//		return msg.ReplyTo(res)
-	//		return err
-	//	}
-	//	rseid = fseid.SEID
-	//
-	//	// Sender must have established a PFCP Association with the Receiver Node
-	//	if _, err := checkSenderAssociation(msg.Entity, msg.SenderAddr); err != nil {
-	//		log.Println(err)
-	//		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
-	//		return msg.ReplyTo(res)
-	//	}
-	//
-	//	// NodeID is a mandatory IE
-	//	if m.NodeID == nil {
-	//		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.NodeID))
-	//		return msg.ReplyTo(res)
-	//	}
-	//	nid, err := m.NodeID.NodeID()
-	//	if err != nil {
-	//		cause := ie.CauseMandatoryIEIncorrect
-	//		if err == io.ErrUnexpectedEOF {
-	//			cause = ie.CauseInvalidLength
-	//		}
-	//		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(ie.NodeID))
-	//		return msg.ReplyTo(res)
-	//	}
+	log.Println("Received Session Establishment Request")
+	m, ok := msg.Message.(*message.SessionEstablishmentRequest)
+	if !ok {
+		return fmt.Errorf("Issue with Session Establishment Request")
+	}
+
+	// If F-SEID is missing or malformed, SEID shall be set to 0
+	var rseid uint64 = 0
+
+	// CP F-SEID is a mandatory IE
+	// The PFCP entities shall accept any new IP address allocated as part of F-SEID
+	// other than the one(s) communicated in the Node ID during Association Establishment Procedure
+	if m.CPFSEID == nil {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.FSEID))
+		return msg.ReplyTo(res)
+	}
+	fseid, err := m.CPFSEID.FSEID()
+	if err != nil {
+		cause := ie.CauseMandatoryIEIncorrect
+		if err == io.ErrUnexpectedEOF {
+			cause = ie.CauseInvalidLength
+		}
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(ie.FSEID))
+		return msg.ReplyTo(res)
+		return err
+	}
+	rseid = fseid.SEID
+
+	// Sender must have established a PFCP Association with the Receiver Node
+	if _, err := checkSenderAssociation(msg.Entity, msg.SenderAddr); err != nil {
+		log.Println(err)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
+		return msg.ReplyTo(res)
+	}
+
+	// NodeID is a mandatory IE
+	if m.NodeID == nil {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.NodeID))
+		return msg.ReplyTo(res)
+	}
+	nid, err := m.NodeID.NodeID()
+	if err != nil {
+		cause := ie.CauseMandatoryIEIncorrect
+		if err == io.ErrUnexpectedEOF {
+			cause = ie.CauseInvalidLength
+		}
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(ie.NodeID))
+		return msg.ReplyTo(res)
+	}
 
 	// NodeID is used to define which PFCP Association is associated the PFCP Session
 	// When the PFCP Association is destructed, associated PFCP Sessions are destructed as well
 	// Since the NodeID can be modified with a Session Modification Request without constraint,
 	// we only need to check the Association is established (it can be a different NodeID than the Sender's one).
-	//	association, err := msg.Entity.GetPFCPAssociation(nid)
-	//	if err != nil {
-	//		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
-	//		return msg.ReplyTo(res)
-	//	}
-	//
-	//	// CreatePDR is a Mandatory IE
-	//	if m.CreatePDR == nil || len(m.CreatePDR) == 0 {
-	//		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreatePDR))
-	//		return msg.ReplyTo(res)
-	//	}
-	//
-	//	// CreateFAR is a Mandatory IE
-	//	if m.CreateFAR == nil || len(m.CreateFAR) == 0 {
-	//		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreateFAR))
-	//		return msg.ReplyTo(res)
-	//	}
-	//
-	//	// create PDRs
-	//	pdrs, err, cause, offendingie := pfcprule.NewPDRs(m.CreatePDR)
-	//	if err != nil {
-	//		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
-	//		return msg.ReplyTo(res)
-	//	}
-	//
-	//	// create FARs
-	//	fars, err, cause, offendingie := pfcprule.NewFARs(m.CreateFAR)
-	//	if err != nil {
-	//		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
-	//		return msg.ReplyTo(res)
-	//	}
+	association, err := msg.Entity.GetPFCPAssociation(nid)
+	if err != nil {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
+		return msg.ReplyTo(res)
+	}
+
+	// CreatePDR is a Mandatory IE
+	if m.CreatePDR == nil || len(m.CreatePDR) == 0 {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreatePDR))
+		return msg.ReplyTo(res)
+	}
+
+	// CreateFAR is a Mandatory IE
+	if m.CreateFAR == nil || len(m.CreateFAR) == 0 {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreateFAR))
+		return msg.ReplyTo(res)
+	}
+
+	// create PDRs
+	pdrs, err, cause, offendingie := pfcprule.NewPDRs(m.CreatePDR)
+	if err != nil {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
+		return msg.ReplyTo(res)
+	}
+
+	// create FARs
+	fars, err, cause, offendingie := pfcprule.NewFARs(m.CreateFAR)
+	if err != nil {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
+		return msg.ReplyTo(res)
+	}
 
 	// create session with PDRs and FARs
-	//	session, err := association.CreateSession(msg.Entity.GetNextRemoteSessionID(), m.CPFSEID, pdrs, fars)
-	//	if err != nil {
-	//		// Send cause(Rule creation/modification failure)
-	//		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseRuleCreationModificationFailure))
-	//		return msg.ReplyTo(res)
-	//	}
+	session, err := association.CreateSession(m.CPFSEID, pdrs, fars)
+	if err != nil {
+		// Send cause(Rule creation/modification failure)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseRuleCreationModificationFailure))
+		return msg.ReplyTo(res)
+	}
 
 	// TODO: Create other type IEs
 
 	// send response: session creation accepted
-	//	res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), session.LocalFSEID())
-	//return msg.ReplyTo(res)
-	return nil // FIXME
+	res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), session.LocalFSEID())
+	return msg.ReplyTo(res)
 }
 
 //func handleSessionModificationRequest(msg ReceivedMessage) error {

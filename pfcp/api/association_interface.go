@@ -5,8 +5,15 @@
 
 package api
 
+import (
+	pfcprule "github.com/louisroyer/go-pfcp-networking/pfcprules"
+	"github.com/wmnsk/go-pfcp/ie"
+)
+
+type SEID = uint64
 type PFCPAssociationInterface interface {
 	PFCPPeerInterface
 	SetupInitiatedByCP() error
-	GetNextSEID() uint64
+	GetNextSEID() SEID
+	CreateSession(remoteFseid *ie.IE, pdrs pfcprule.PDRs, fars pfcprule.FARs) (session PFCPSessionInterface, err error)
 }

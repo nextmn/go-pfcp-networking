@@ -19,20 +19,29 @@ import (
 )
 
 type PFCPSession struct {
+	// isEstablished flag is used when PFCP Session Establishment Procedure has been completed
+	// (can be initiated from the Local Entity or the Remote Peer, depending on kind of peer (UP/CP)
 	isEstablished bool
-	association   api.PFCPAssociationInterface // is used to send Request type PFCP Messages
+	// association is used to send Request type PFCP Messages
+	association api.PFCPAssociationInterface // XXX: use remoteFSEID to find the association from LocalEntity instead of storing an association
 	// When Peer A send a message (M) to Peer B
 	// M.PFCPHeader.SEID = B.LocalSEID() = A.RemoteSEID()
 	// M.IPHeader.IP_DST = B.LocalIPAddress = A.RemoteIPAddress()
 	localFseid  *ie.IE // local F-SEID
-	remoteFseid *ie.IE // remote F-SEID
-	pdr         map[uint16]*pfcprule.PDR
-	far         map[uint32]*pfcprule.FAR
-	sortedPDR   pfcprule.PDRs
-	atomicMu    sync.Mutex // allows to perform atomic operations
+	remoteFseid *ie.IE // remote F-SEID, on UP function this is allocated at Setup() time
+	// PDR Map allow to retrieve a specific PDR by its ID
+	pdr pfcprule.PDRMap
+	// sortedPDR is used to perform PDR finding using PDI Matching
+	sortedPDR pfcprule.PDRs
+	// FAR Map allow to retrieve a specific FAR by its ID
+	far      pfcprule.FARMap
+	atomicMu sync.Mutex // allows to perform atomic operations
 }
 
-func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid, rseid *ie.IE, pdrs map[uint16]*pfcprule.PDR, fars map[uint32]*pfcprule.FAR) (api.PFCPSessionInterface, error) {
+// Create an EstablishedPFCPSession
+// Use this function when a PFCP Session Establishment Request is received (UP case),
+// or when the Entity want to send a PFCP Session Establishment Request (CP case).
+func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid, rseid *ie.IE, pdrs pfcprule.PDRMap, fars pfcprule.FARMap) (api.PFCPSessionInterface, error) {
 	s := PFCPSession{
 		isEstablished: false,
 		association:   association,
@@ -51,14 +60,18 @@ func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid, 
 	if err := s.Setup(); err != nil {
 		return nil, err
 	}
+	// Add to SessionFSEIDMap of LocalEntity
+	s.association.LocalEntity().AddEstablishedPFCPSession(s)
 	return s, nil
 }
 
+// Get local F-SEID of this session
+// This value should be used when a session related message is received.
 func (s PFCPSession) LocalFSEID() *ie.IE {
 	return s.localFseid
 }
 
-func (s PFCPSession) LocalSEID() (uint64, error) {
+func (s PFCPSession) LocalSEID() (api.SEID, error) {
 	fseid, err := s.localFseid.FSEID()
 	if err != nil {
 		return 0, err
@@ -81,11 +94,13 @@ func (s PFCPSession) LocalIPAddress() (net.IP, error) {
 	}
 }
 
+// Get remote F-SEID of this session
+// This value should be used when a session related message is send.
 func (s PFCPSession) RemoteFSEID() *ie.IE {
 	return s.remoteFseid
 }
 
-func (s PFCPSession) RemoteSEID() (uint64, error) {
+func (s PFCPSession) RemoteSEID() (api.SEID, error) {
 	fseid, err := s.remoteFseid.FSEID()
 	if err != nil {
 		return 0, err
@@ -108,20 +123,24 @@ func (s PFCPSession) RemoteIPAddress() (net.IP, error) {
 	}
 }
 
+// Returns PDRs sorted by Precedence
+// For PDI checking, the checking order is:
+// look first at the first item of the array,
+// look last at the last item of the array.
 func (s PFCPSession) GetPDRs() pfcprule.PDRs {
 	s.atomicMu.Lock()
 	defer s.atomicMu.Unlock()
 	return s.sortedPDR
 }
 
-func (s PFCPSession) GetFAR(farid uint32) (*pfcprule.FAR, error) {
+func (s PFCPSession) GetFAR(farid pfcprule.FARID) (*pfcprule.FAR, error) {
 	if far, ok := s.far[farid]; ok {
 		return far, nil
 	}
 	return nil, fmt.Errorf("No far with id", farid)
 }
 
-func (s *PFCPSession) addPDRsUnsafe(pdrs map[uint16]*pfcprule.PDR) {
+func (s *PFCPSession) addPDRsUnsafe(pdrs pfcprule.PDRMap) {
 	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
 	for id, pdr := range pdrs {
 		s.pdr[id] = pdr
@@ -130,25 +149,29 @@ func (s *PFCPSession) addPDRsUnsafe(pdrs map[uint16]*pfcprule.PDR) {
 	sort.Sort(s.sortedPDR)
 
 }
-func (s *PFCPSession) addFARsUnsafe(fars map[uint32]*pfcprule.FAR) {
+func (s *PFCPSession) addFARsUnsafe(fars pfcprule.FARMap) {
 	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
 	for id, far := range fars {
 		s.far[id] = far
 	}
 }
 
-func (s PFCPSession) AddPDRsFARs(pdrs map[uint16]*pfcprule.PDR, fars map[uint32]*pfcprule.FAR) {
+func (s PFCPSession) AddPDRsFARs(pdrs pfcprule.PDRMap, fars pfcprule.FARMap) {
 	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
 	s.atomicMu.Lock()
 	defer s.atomicMu.Unlock()
 	s.addPDRsUnsafe(pdrs)
 	s.addFARsUnsafe(fars)
+	// TODO: if isUserPlane() -> send the Session Modification Request
 }
 
 // Set the remote FSEID of a PFCPSession
-func (s PFCPSession) SetRemoteFSEID(FSEID *ie.IE) {
-
-}
+// it must be used for next session related messages
+//func (s PFCPSession) SetRemoteFSEID(FSEID *ie.IE) {
+//	s.remoteFseid = FSEID
+//XXX: change association to the right-one (unless XXX line 26 is fixed)
+//     update sessionsmap in local entity
+//}
 
 func (s PFCPSession) Setup() error {
 	if s.isEstablished {
@@ -162,22 +185,6 @@ func (s PFCPSession) Setup() error {
 	case s.association.LocalEntity().IsControlPlane():
 		// Send PFCP Session Setup Request
 		// first add to temporary map to avoid erroring after msg is send
-		tmpPDR := make(map[uint16]*pfcprule.PDR)
-		for _, pdr := range s.pdr {
-			id, err := pdr.ID()
-			if err != nil {
-				return err
-			}
-			tmpPDR[id] = pdr
-		}
-		tmpFAR := make(map[uint32]*pfcprule.FAR)
-		for _, far := range s.far {
-			id, err := far.ID()
-			if err != nil {
-				return err
-			}
-			tmpFAR[id] = far
-		}
 		ies := make([]*ie.IE, 0)
 		ies = append(ies, s.association.LocalEntity().NodeID())
 		ies = append(ies, s.localFseid)
@@ -198,7 +205,6 @@ func (s PFCPSession) Setup() error {
 			log.Printf("got unexpected message: %s\n", resp.MessageTypeName())
 		}
 		s.remoteFseid = ser.UPFSEID
-		s.AddPDRsFARs(tmpPDR, tmpFAR)
 		s.isEstablished = true
 		return nil
 	default:

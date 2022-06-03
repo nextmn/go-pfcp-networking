@@ -29,7 +29,9 @@ func NewPDR(id *ie.IE, pdi *ie.IE, precedence *ie.IE, farid *ie.IE, outerHeaderR
 	}
 }
 
+type PDRID = uint16
 type PDRs []*PDR
+type PDRMap map[PDRID]*PDR
 
 func (pdrs PDRs) Less(i, j int) bool {
 	// element with highest precedence (lowest value in Precedence IE) should be sorted first
@@ -51,7 +53,7 @@ func (pdrs PDRs) Swap(i, j int) {
 	pdrs[i], pdrs[j] = pdrs[j], pdrs[i]
 }
 
-func (pdr *PDR) ID() (uint16, error) {
+func (pdr *PDR) ID() (PDRID, error) {
 	return pdr.id.PDRID()
 }
 
@@ -62,7 +64,7 @@ func (pdr *PDR) Precedence() (uint32, error) {
 	return pdr.precedence.Precedence()
 }
 
-func (pdr *PDR) FARID() (uint32, error) {
+func (pdr *PDR) FARID() (FARID, error) {
 	return pdr.farid.FARID()
 }
 
@@ -84,7 +86,7 @@ func (pdr *PDR) NewCreatePDR() *ie.IE {
 	return ie.NewCreatePDR(ies...)
 }
 
-func NewCreatePDRs(pdrs []*PDR) []*ie.IE {
+func NewCreatePDRs(pdrs PDRMap) []*ie.IE {
 	p := make([]*ie.IE, 0)
 	for _, pdr := range pdrs {
 		p = append(p, pdr.NewCreatePDR())

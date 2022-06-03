@@ -14,14 +14,14 @@ import (
 
 type PFCPSessionInterface interface {
 	LocalFSEID() *ie.IE
-	LocalSEID() (uint64, error)
+	LocalSEID() (SEID, error)
 	LocalIPAddress() (net.IP, error)
 	RemoteFSEID() *ie.IE
-	RemoteSEID() (uint64, error)
+	RemoteSEID() (SEID, error)
 	RemoteIPAddress() (net.IP, error)
 	GetPDRs() pfcprule.PDRs
 	GetFAR(farid uint32) (*pfcprule.FAR, error)
-	AddPDRsFARs(pdrs map[uint16]*pfcprule.PDR, fars map[uint32]*pfcprule.FAR)
-	SetRemoteFSEID(FSEID *ie.IE)
+	AddPDRsFARs(pdrs pfcprule.PDRMap, fars pfcprule.FARMap)
+	//	SetRemoteFSEID(FSEID *ie.IE)
 	Setup() error
 }

@@ -5,11 +5,15 @@
 
 package pfcp_networking
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
+)
 
 // SessionIDPool is a generator of session IDs
 type SessionIDPool struct {
-	currentSessionID uint64
+	currentSessionID api.SEID
 	muSessionID      sync.Mutex
 }
 
@@ -22,7 +26,7 @@ func NewSessionIDPool() SessionIDPool {
 }
 
 // Get next id available in SessionIDPool
-func (pool *SessionIDPool) GetNext() uint64 {
+func (pool *SessionIDPool) GetNext() api.SEID {
 	pool.muSessionID.Lock()
 	defer pool.muSessionID.Unlock()
 	id := pool.currentSessionID

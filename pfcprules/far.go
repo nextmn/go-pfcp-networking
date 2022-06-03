@@ -17,7 +17,11 @@ type FAR struct {
 	forwardingParameters *ie.IE
 }
 
-func (far *FAR) ID() (uint32, error) {
+type FARID = uint32
+type FARs []*FAR
+type FARMap map[FARID]*FAR
+
+func (far *FAR) ID() (FARID, error) {
 	return far.id.FARID()
 }
 
@@ -47,7 +51,7 @@ func (far *FAR) NewCreateFAR() *ie.IE {
 	return ie.NewCreateFAR(ies...)
 }
 
-func NewCreateFARs(fars []*FAR) []*ie.IE {
+func NewCreateFARs(fars FARMap) []*ie.IE {
 	f := make([]*ie.IE, 0)
 	for _, far := range fars {
 		f = append(f, far.NewCreateFAR())
@@ -55,7 +59,7 @@ func NewCreateFARs(fars []*FAR) []*ie.IE {
 	return f
 }
 
-func NewFARs(fars []*ie.IE) (far []*FAR, err error, cause uint8, offendingIE uint16) {
+func NewFARs(fars []*ie.IE) (far FARs, err error, cause uint8, offendingIE uint16) {
 	f := make([]*FAR, 0)
 	for _, far := range fars {
 		id, err := far.FARID()

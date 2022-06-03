@@ -71,6 +71,8 @@ func (s PFCPSession) LocalFSEID() *ie.IE {
 	return s.localFseid
 }
 
+// Get SEID part of local F-SEID
+// This value should be used when a session related message is received.
 func (s PFCPSession) LocalSEID() (api.SEID, error) {
 	fseid, err := s.localFseid.FSEID()
 	if err != nil {
@@ -79,6 +81,8 @@ func (s PFCPSession) LocalSEID() (api.SEID, error) {
 	return fseid.SEID, nil
 }
 
+// Get IP Address part of local F-SEID
+// This value should be used when a session related message is received.
 func (s PFCPSession) LocalIPAddress() (net.IP, error) {
 	fseid, err := s.localFseid.FSEID()
 	if err != nil {
@@ -100,6 +104,8 @@ func (s PFCPSession) RemoteFSEID() *ie.IE {
 	return s.remoteFseid
 }
 
+// Get SEID part of remote F-SEID
+// This value should be used when a session related message is send.
 func (s PFCPSession) RemoteSEID() (api.SEID, error) {
 	fseid, err := s.remoteFseid.FSEID()
 	if err != nil {
@@ -108,6 +114,8 @@ func (s PFCPSession) RemoteSEID() (api.SEID, error) {
 	return fseid.SEID, nil
 }
 
+// Get IP Address part of remote F-SEID
+// This value should be used when a session related message is send.
 func (s PFCPSession) RemoteIPAddress() (net.IP, error) {
 	fseid, err := s.remoteFseid.FSEID()
 	if err != nil {
@@ -133,13 +141,16 @@ func (s PFCPSession) GetPDRs() pfcprule.PDRs {
 	return s.sortedPDR
 }
 
+// Get FAR associated with this FARID
 func (s PFCPSession) GetFAR(farid pfcprule.FARID) (*pfcprule.FAR, error) {
 	if far, ok := s.far[farid]; ok {
 		return far, nil
 	}
-	return nil, fmt.Errorf("No far with id", farid)
+	return nil, fmt.Errorf("No FAR with id", farid)
 }
 
+// Add PDRs to the session
+// This is an internal function, not thread safe
 func (s *PFCPSession) addPDRsUnsafe(pdrs pfcprule.PDRMap) {
 	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
 	for id, pdr := range pdrs {
@@ -147,8 +158,10 @@ func (s *PFCPSession) addPDRsUnsafe(pdrs pfcprule.PDRMap) {
 		s.sortedPDR = append(s.sortedPDR, pdr)
 	}
 	sort.Sort(s.sortedPDR)
-
 }
+
+// Add FARs to the session
+// This is an internal function, not thread safe
 func (s *PFCPSession) addFARsUnsafe(fars pfcprule.FARMap) {
 	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
 	for id, far := range fars {
@@ -156,6 +169,7 @@ func (s *PFCPSession) addFARsUnsafe(fars pfcprule.FARMap) {
 	}
 }
 
+// Add PDRs and FARs to the session
 func (s PFCPSession) AddPDRsFARs(pdrs pfcprule.PDRMap, fars pfcprule.FARMap) {
 	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
 	s.atomicMu.Lock()
@@ -173,6 +187,10 @@ func (s PFCPSession) AddPDRsFARs(pdrs pfcprule.PDRMap, fars pfcprule.FARMap) {
 //     update sessionsmap in local entity
 //}
 
+// Setup function, either by:
+// performing the PFCP Session Establishment Procedure (if CP function),
+// or by doing nothing particular (if UP function) since
+// the PFCP Session Establishment Procedure is already performed
 func (s PFCPSession) Setup() error {
 	if s.isEstablished {
 		return fmt.Errorf("Session is already establihed")

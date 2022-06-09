@@ -43,16 +43,30 @@ type PFCPSession struct {
 // Create an EstablishedPFCPSession
 // Use this function when a PFCP Session Establishment Request is received (UP case),
 // or when the Entity want to send a PFCP Session Establishment Request (CP case).
-func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid *ie.IE, rfseid *ie.IE, pdrs pfcprule.PDRMap, fars pfcprule.FARMap) (api.PFCPSessionInterface, error) {
+func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid, rfseid *ie.IE, pdrs pfcprule.PDRMap, fars pfcprule.FARMap) (api.PFCPSessionInterface, error) {
 	s := PFCPSession{
 		isEstablished: false,
 		association:   association,
-		localFseid:    fseid,  // local F-SEID
-		remoteFseid:   rfseid, // FSEID ie send by remote peer
+		localFseid:    nil, // local F-SEID
+		remoteFseid:   nil, // FSEID ie send by remote peer
 		pdr:           pdrs,
 		far:           fars,
 		sortedPDR:     make(pfcprule.PDRs, 0),
 		atomicMu:      sync.RWMutex{},
+	}
+	if fseid != nil {
+		fseidFields, err := fseid.FSEID()
+		s.localFseid = ie.NewFSEID(fseidFields.SEID, fseidFields.IPv4Address, fseidFields.IPv6Address)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if rfseid != nil {
+		rfseidFields, err := rfseid.FSEID()
+		s.remoteFseid = ie.NewFSEID(rfseidFields.SEID, rfseidFields.IPv4Address, rfseidFields.IPv6Address)
+		if err != nil {
+			return nil, err
+		}
 	}
 	// sort PDRs
 	for _, p := range pdrs {
@@ -273,7 +287,12 @@ func (s PFCPSession) Setup() error {
 		if !ok {
 			log.Printf("got unexpected message: %s\n", resp.MessageTypeName())
 		}
-		s.remoteFseid = ser.UPFSEID
+
+		remoteFseidFields, err := ser.UPFSEID.FSEID()
+		if err != nil {
+			return err
+		}
+		s.remoteFseid = ie.NewFSEID(remoteFseidFields.SEID, remoteFseidFields.IPv4Address, remoteFseidFields.IPv6Address)
 		s.isEstablished = true
 		return nil
 	default:

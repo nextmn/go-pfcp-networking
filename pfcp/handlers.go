@@ -61,7 +61,7 @@ func handleSessionEstablishmentRequest(msg ReceivedMessage) error {
 	}
 
 	// If F-SEID is missing or malformed, SEID shall be set to 0
-	var rseid uint64 = 0
+	var rseid api.SEID = 0
 
 	// CP F-SEID is a mandatory IE
 	// The PFCP entities shall accept any new IP address allocated as part of F-SEID

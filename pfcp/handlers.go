@@ -324,5 +324,5 @@ func checkSenderAssociation(entity api.PFCPEntityInterface, senderAddr net.Addr)
 	if err == nil {
 		return association, nil
 	}
-	return nil, fmt.Errorf("Entity with NodeID '%s' is has no active associtation", nid)
+	return nil, fmt.Errorf("Entity with NodeID '%s' is has no active association", nid)
 }

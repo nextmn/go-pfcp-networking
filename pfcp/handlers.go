@@ -43,10 +43,12 @@ func handleAssociationSetupRequest(msg ReceivedMessage) error {
 	}
 
 	if _, err := msg.Entity.NewEstablishedPFCPAssociation(m.NodeID); err != nil {
+		log.Println("Rejected Association:", err)
 		res := message.NewAssociationSetupResponse(msg.Sequence(), msg.Entity.NodeID(), ie.NewCause(ie.CauseRequestRejected), msg.Entity.RecoveryTimeStamp())
 		return msg.ReplyTo(res)
 	}
 
+	log.Println("Association Accepted")
 	res := message.NewAssociationSetupResponse(msg.Sequence(), msg.Entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), msg.Entity.RecoveryTimeStamp())
 	return msg.ReplyTo(res)
 }

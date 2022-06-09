@@ -187,7 +187,7 @@ func (association PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs pfcpru
 	if fars == nil {
 		return nil, fmt.Errorf("[SEID: %d] No FAR in session", localSEID)
 	}
-	log.Printf("[SEID: %d] AddingFARs to session\n", localSEID, len(fars))
+	log.Printf("[SEID: %d] Adding %d FARs to session\n", localSEID, len(fars))
 	for _, far := range fars {
 		if far == nil {
 			log.Printf("[SEID: %d] A FAR is nil\n", localSEID)

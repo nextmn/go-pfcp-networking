@@ -28,6 +28,7 @@ func newEstablishedPFCPAssociation(peer api.PFCPPeerInterface) (api.PFCPAssociat
 	association := PFCPAssociation{
 		PFCPPeerInterface: peer,
 		isSetup:           false,
+		sessionIDPool:     NewSessionIDPool(),
 	}
 	err := association.SetupInitiatedByCP()
 	if err != nil {

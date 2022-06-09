@@ -169,12 +169,12 @@ func (association PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs pfcpru
 	// Checking PDRs, and FARs
 	tmpPDR := make(pfcprule.PDRMap)
 	if pdrs == nil {
-		return nil, fmt.Errorf("No PDR in session")
+		return nil, fmt.Errorf("[SEID: %d] No PDR in session creation request", localSEID)
 	}
-	log.Println("Adding", len(pdrs), "PDRs to session")
+	log.Printf("[SEID: %d] Adding %d PDRs to session\n", localSEID, len(pdrs))
 	for _, pdr := range pdrs {
 		if pdr == nil {
-			log.Println("A PDR is nil")
+			log.Printf("[SEID: %d] A PDR is nil", localSEID)
 			continue
 		}
 		id, err := pdr.ID()
@@ -185,12 +185,12 @@ func (association PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs pfcpru
 	}
 	tmpFAR := make(pfcprule.FARMap)
 	if fars == nil {
-		return nil, fmt.Errorf("No FAR in session")
+		return nil, fmt.Errorf("[SEID: %d] No FAR in session", localSEID)
 	}
-	log.Println("Adding", len(fars), "FARs to session")
+	log.Printf("[SEID: %d] AddingFARs to session\n", localSEID, len(fars))
 	for _, far := range fars {
 		if far == nil {
-			log.Println("A FAR is nil")
+			log.Printf("[SEID: %d] A FAR is nil\n", localSEID)
 			continue
 		}
 		id, err := far.ID()

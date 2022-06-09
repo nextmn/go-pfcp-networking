@@ -28,7 +28,7 @@ type PFCPSession struct {
 	// M.PFCPHeader.SEID = B.LocalSEID() = A.RemoteSEID()
 	// M.IPHeader.IP_DST = B.LocalIPAddress = A.RemoteIPAddress()
 	localFseid  *ie.IE // local F-SEID
-	remoteFseid *ie.IE // remote F-SEID, on UP function this is allocated at Setup() time
+	remoteFseid *ie.IE // remote F-SEID, on Control Plane function this is allocated at Setup() time
 	// PDR Map allow to retrieve a specific PDR by its ID
 	pdr pfcprule.PDRMap
 	// sortedPDR is used to perform PDR finding using PDI Matching
@@ -43,12 +43,12 @@ type PFCPSession struct {
 // Create an EstablishedPFCPSession
 // Use this function when a PFCP Session Establishment Request is received (UP case),
 // or when the Entity want to send a PFCP Session Establishment Request (CP case).
-func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid, rseid *ie.IE, pdrs pfcprule.PDRMap, fars pfcprule.FARMap) (api.PFCPSessionInterface, error) {
+func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid *ie.IE, rfseid *ie.IE, pdrs pfcprule.PDRMap, fars pfcprule.FARMap) (api.PFCPSessionInterface, error) {
 	s := PFCPSession{
 		isEstablished: false,
 		association:   association,
-		localFseid:    fseid, // local F-SEID
-		remoteFseid:   rseid, // SEID present in FSEID ie send by remote peer
+		localFseid:    fseid,  // local F-SEID
+		remoteFseid:   rfseid, // FSEID ie send by remote peer
 		pdr:           pdrs,
 		far:           fars,
 		sortedPDR:     make(pfcprule.PDRs, 0),

@@ -230,7 +230,7 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 			}
 		}
 	}
-	return nil, fmt.Errorf("Unsucessfull transfer of Request message")
+	return nil, fmt.Errorf("Unsuccessfull transfer of Request message")
 }
 
 // Send an Heartbeat request, return true if the PFCP peer is alive.

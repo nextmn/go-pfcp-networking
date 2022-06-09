@@ -147,7 +147,6 @@ func handleSessionEstablishmentRequest(msg ReceivedMessage) error {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseRuleCreationModificationFailure))
 		return msg.ReplyTo(res)
 	}
-	log.Println("New Session created with local SEID: ", session.LocalSEID, " and remote SEID: ", session.RemoteSEID)
 
 	// TODO: Create other type IEs
 	// XXX: QER ie are ignored for the moment

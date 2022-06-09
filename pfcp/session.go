@@ -86,6 +86,7 @@ func (s PFCPSession) LocalSEID() (api.SEID, error) {
 // Get IP Address part of local F-SEID
 // This value should be used when a session related message is received.
 func (s PFCPSession) LocalIPAddress() (net.IP, error) {
+	// XXX: handle case where both HasIPv6 and HasIPv4 are set
 	fseid, err := s.localFseid.FSEID()
 	if err != nil {
 		return nil, err
@@ -119,6 +120,7 @@ func (s PFCPSession) RemoteSEID() (api.SEID, error) {
 // Get IP Address part of remote F-SEID
 // This value should be used when a session related message is send.
 func (s PFCPSession) RemoteIPAddress() (net.IP, error) {
+	// XXX: handle case where both HasIPv6 and HasIPv4 are set
 	fseid, err := s.remoteFseid.FSEID()
 	if err != nil {
 		return nil, err

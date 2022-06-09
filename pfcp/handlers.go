@@ -153,42 +153,72 @@ func handleSessionEstablishmentRequest(msg ReceivedMessage) error {
 	return msg.ReplyTo(res)
 }
 
-//func handleSessionModificationRequest(msg ReceivedMessage) error {
-//	log.Println("Received Session Modification Request")
-//	_, ok := msg.Message.(*message.SessionModificationRequest)
-//	if !ok {
-//		return fmt.Errorf("Issue with Session Modification Request")
-//	}
-//	// Peer must have an association established or the message will be rejected
-//
-//	// PFCP session related messages for sessions that are already established are sent to the IP address received
-//	// in the F-SEID allocated by the peer function or to the IP address of an alternative SMF in the SMF set
-//	// (see clause 5.22). The former IP address needs not be configured in the look up information.
-//
-//	// Thereforce, use of checkSenderAssociation is prohibed
-//
-//	// Find the Session by its F-SEID
-//	localseid := msg.SEID()
-//	sessions := msg.Entity.GetLocalSessions()
-//	if _, ok := sessions[localseid]; !ok {
-//		res := message.NewSessionModificationResponse(0, 0, 0, msg.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound))
-//		return msg.ReplyTo(res)
-//	}
-//	session := sessions[localseid]
-//	rseid, err := session.RemoteSEID()
-//	if err != nil {
-//		return err
-//	}
-//
-//	// CP F-SEID
-//	// This IE shall be present if the CP function decides to change its F-SEID for the
-//	// PFCP session. The UP function shall use the new CP F-SEID for subsequent
-//	// PFCP Session related messages for this PFCP Session
-//
-//	// TODO:
-//	res := message.NewSessionModificationResponse(0, 0, rseid, msg.Sequence(), 0, ie.NewCause(ie.CauseRequestRejected))
-//	return msg.ReplyTo(res)
-//}
+func handleSessionModificationRequest(msg ReceivedMessage) error {
+	log.Println("Received Session Modification Request")
+	_, ok := msg.Message.(*message.SessionModificationRequest)
+	if !ok {
+		return fmt.Errorf("Issue with Session Modification Request")
+	}
+	// PFCP session related messages for sessions that are already established are sent to the IP address received
+	// in the F-SEID allocated by the peer function or to the IP address of an alternative SMF in the SMF set
+	// (see clause 5.22). The former IP address needs not be configured in the look up information.
+
+	// Thereforce, use of checkSenderAssociation is prohibed when receiving Session Modification Request
+
+	// Find the Session by its F-SEID
+	ielocalnodeid := msg.Entity.NodeID()
+	localnodeid, err := ielocalnodeid.NodeID()
+	if err != nil {
+		return err
+	}
+	var localip string
+	switch ielocalnodeid.Payload[0] {
+	case ie.NodeIDIPv4Address:
+		ip4, err := net.ResolveIPAddr("ip4", localnodeid)
+		if err != nil {
+			return err
+		}
+		localip = ip4.String()
+	case ie.NodeIDIPv6Address:
+		ip6, err := net.ResolveIPAddr("ip6", localnodeid)
+		if err != nil {
+			return err
+		}
+		localip = ip6.String()
+	case ie.NodeIDFQDN:
+		ip4, _ := net.ResolveIPAddr("ip4", localnodeid)
+		ip6, _ := net.ResolveIPAddr("ip6", localnodeid)
+		// XXX handle localip in fseid sessions.go session_map.go when ip4 and ip6 are set
+		switch {
+		case ip6 != nil:
+			localip = ip6.String()
+		case ip4 != nil:
+			localip = ip4.String()
+		default:
+			return fmt.Errorf("Cannot resolve NodeID")
+		}
+	}
+	localseid := msg.SEID()
+	session, err := msg.Entity.GetPFCPSession(localip, localseid)
+	if err != nil {
+		res := message.NewSessionModificationResponse(0, 0, 0, msg.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound))
+		return msg.ReplyTo(res)
+	}
+
+	rseid, err := session.RemoteSEID()
+	if err != nil {
+		return err
+	}
+
+	//	// CP F-SEID
+	//	// This IE shall be present if the CP function decides to change its F-SEID for the
+	//	// PFCP session. The UP function shall use the new CP F-SEID for subsequent
+	//	// PFCP Session related messages for this PFCP Session
+	//
+	//XXX: ignored for the moment
+	res := message.NewSessionModificationResponse(0, 0, rseid, msg.Sequence(), 0, ie.NewCause(ie.CauseRequestRejected))
+	return msg.ReplyTo(res)
+}
 
 func checkSenderAssociation(entity api.PFCPEntityInterface, senderAddr net.Addr) (api.PFCPAssociationInterface, error) {
 	// Once the PFCP Association is established, any of the IP addresses of the peer

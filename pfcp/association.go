@@ -143,11 +143,21 @@ func (association *PFCPAssociation) getFSEID(seid api.SEID) (*ie.IE, error) {
 		if err4 != nil && err6 != nil {
 			return nil, fmt.Errorf("Cannot resolve NodeID")
 		}
-		localFseid = ie.NewFSEID(seid, ip4.IP.To4(), ip6.IP.To16())
+		switch {
+		case err4 == nil && err6 == nil:
+			localFseid = ie.NewFSEID(seid, ip4.IP.To4(), ip6.IP.To16())
+		case err4 == nil && err6 != nil:
+			localFseid = ie.NewFSEID(seid, ip4.IP.To4(), nil)
+		case err4 != nil && err6 == nil:
+			localFseid = ie.NewFSEID(seid, nil, ip6.IP.To16())
+		case err4 != nil && err6 != nil:
+			return nil, fmt.Errorf("Cannot resolve NodeID")
+		}
 	}
 	return localFseid, nil
 }
 
+// remoteFseid can be nil if caller is at CP function side
 func (association PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs pfcprule.PDRs, fars pfcprule.FARs) (session api.PFCPSessionInterface, err error) {
 	// Generation of the F-SEID
 	localSEID := association.GetNextSEID()

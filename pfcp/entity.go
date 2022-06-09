@@ -44,6 +44,10 @@ func (e *PFCPEntity) GetPFCPSessions() []api.PFCPSessionInterface {
 	return e.sessionsMap.GetPFCPSessions()
 }
 
+func (e *PFCPEntity) GetPFCPSession(localIP string, seid api.SEID) (api.PFCPSessionInterface, error) {
+	return e.sessionsMap.GetPFCPSession(localIP, seid)
+}
+
 func (e *PFCPEntity) SendTo(msg []byte, dst net.Addr) error {
 	e.connMu.Lock()
 	defer e.connMu.Unlock()

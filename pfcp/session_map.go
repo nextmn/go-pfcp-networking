@@ -6,6 +6,7 @@
 package pfcp_networking
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
@@ -23,7 +24,7 @@ func (sm *SessionsMap) Add(session api.PFCPSessionInterface) error {
 	sm.muSessions.Lock()
 	defer sm.muSessions.Unlock()
 	// Get splitted F-SEID
-	localIPAddr, err := session.LocalIPAddress()
+	localIPAddr, err := session.LocalIPAddress() // XXX: handle case where both ip6 and ip4 are set
 	if err != nil {
 		return err
 	}
@@ -60,4 +61,19 @@ func (sm *SessionsMap) GetPFCPSessions() []api.PFCPSessionInterface {
 		}
 	}
 	return sessions
+}
+
+// Returns a PFCP Session by its FSEID
+func (sm *SessionsMap) GetPFCPSession(localIP string, seid api.SEID) (api.PFCPSessionInterface, error) {
+	sm.muSessions.RLock()
+	defer sm.muSessions.RUnlock()
+	if sessions, ipexists := sm.sessions[localIP]; ipexists {
+		if session, sessionexists := sessions[seid]; sessionexists {
+			return session, nil
+		} else {
+			return nil, fmt.Errorf("Session not found: wrong SEID")
+		}
+	} else {
+		return nil, fmt.Errorf("Session not found: wrong IP")
+	}
 }

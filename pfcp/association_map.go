@@ -53,7 +53,17 @@ func (a *AssociationsMap) Add(association api.PFCPAssociationInterface) error {
 	return nil
 }
 
-// Returns an existing PFCP Association
+// Returns true if the association does not exist
+func (a *AssociationsMap) CheckNonExist(nid string) bool {
+	a.muAssociations.RLock()
+	defer a.muAssociations.RUnlock()
+	if _, exists := a.associations[nid]; exists {
+		return false
+	}
+	return true
+}
+
+// Returns a copy of an existing PFCP Association
 func (a *AssociationsMap) Get(nid string) (association api.PFCPAssociationInterface, err error) {
 	a.muAssociations.RLock()
 	defer a.muAssociations.RUnlock()
@@ -63,12 +73,14 @@ func (a *AssociationsMap) Get(nid string) (association api.PFCPAssociationInterf
 	return nil, fmt.Errorf("Association does not exist.")
 }
 
-// Returns true if the association does not exist
-func (a *AssociationsMap) CheckNonExist(nid string) bool {
-	a.muAssociations.RLock()
-	defer a.muAssociations.RUnlock()
-	if _, exists := a.associations[nid]; exists {
-		return false
+// Update a Association
+func (a *AssociationsMap) Update(association api.PFCPAssociationInterface) error {
+	nid, err := association.NodeID().NodeID()
+	if err != nil {
+		return err
 	}
-	return true
+	a.muAssociations.Lock()
+	defer a.muAssociations.Unlock()
+	a.associations[nid] = association
+	return nil
 }

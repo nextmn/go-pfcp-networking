@@ -108,6 +108,7 @@ func handleSessionEstablishmentRequest(msg ReceivedMessage) error {
 	// When the PFCP Association is destructed, associated PFCP Sessions are destructed as well
 	// Since the NodeID can be modified with a Session Modification Request without constraint,
 	// we only need to check the Association is established (it can be a different NodeID than the Sender's one).
+	//XXX Warning, no thread safe
 	association, err := msg.Entity.GetPFCPAssociation(nid)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
@@ -145,6 +146,13 @@ func handleSessionEstablishmentRequest(msg ReceivedMessage) error {
 	if err != nil {
 		// Send cause(Rule creation/modification failure)
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseRuleCreationModificationFailure))
+		return msg.ReplyTo(res)
+	}
+	//XXX Warning, no thread safe
+	err = msg.Entity.UpdatePFCPAssociation(association)
+	if err != nil {
+		// Send cause(Rule creation/modification failure)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseSystemFailure))
 		return msg.ReplyTo(res)
 	}
 

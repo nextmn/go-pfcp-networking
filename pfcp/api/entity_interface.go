@@ -22,5 +22,6 @@ type PFCPEntityInterface interface {
 	SendTo(msg []byte, dst net.Addr) error
 	GetPFCPSessions() []PFCPSessionInterface
 	GetPFCPSession(localIP string, seid SEID) (PFCPSessionInterface, error)
+	UpdatePFCPAssociation(association PFCPAssociationInterface) error
 	AddEstablishedPFCPSession(session PFCPSessionInterface) error
 }

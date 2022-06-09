@@ -147,6 +147,12 @@ func (e *PFCPEntity) GetPFCPAssociation(nid string) (association api.PFCPAssocia
 	return e.associationsMap.Get(nid)
 }
 
+// Update an Association
+
+func (e *PFCPEntity) UpdatePFCPAssociation(association api.PFCPAssociationInterface) error {
+	return e.associationsMap.Update(association)
+}
+
 func (e *PFCPEntity) NewEstablishedPFCPAssociation(nodeID *ie.IE) (association api.PFCPAssociationInterface, err error) {
 	peer, err := newPFCPPeerUP(e, nodeID)
 	if err != nil {

@@ -6,6 +6,7 @@
 package pfcp_networking
 
 import (
+	"log"
 	"sync"
 
 	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
@@ -31,5 +32,6 @@ func (pool *SessionIDPool) GetNext() api.SEID {
 	defer pool.muSessionID.Unlock()
 	id := pool.currentSessionID
 	pool.currentSessionID = id + 1
+	log.Println("Returning next Session ID:", id)
 	return id
 }

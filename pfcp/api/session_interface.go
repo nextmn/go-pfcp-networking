@@ -21,7 +21,7 @@ type PFCPSessionInterface interface {
 	RemoteIPAddress() (net.IP, error)
 	GetPDRs() pfcprule.PDRs
 	GetFAR(farid uint32) (*pfcprule.FAR, error)
-	AddPDRsFARs(pdrs pfcprule.PDRMap, fars pfcprule.FARMap)
+	AddUpdatePDRsFARs(createpdrs pfcprule.PDRMap, createfars pfcprule.FARMap, updatepdr pfcprule.PDRMap, updatefars pfcprule.FARMap) error
 	//	SetRemoteFSEID(FSEID *ie.IE)
 	Setup() error
 }

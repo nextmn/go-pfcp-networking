@@ -155,10 +155,13 @@ func (s PFCPSession) GetFAR(farid pfcprule.FARID) (*pfcprule.FAR, error) {
 	return nil, fmt.Errorf("No FAR with id", farid)
 }
 
-// Add PDRs to the session
+// Update PDRs of the session
 // This is an internal function, not thread safe
-func (s *PFCPSession) addPDRsUnsafe(pdrs pfcprule.PDRMap) {
+func (s *PFCPSession) updatePDRsUnsafe(pdrs pfcprule.PDRMap) {
 	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
+	if pdrs == nil {
+		return
+	}
 	for id, pdr := range pdrs {
 		s.pdr[id] = pdr
 		s.sortedPDR = append(s.sortedPDR, pdr)
@@ -166,23 +169,65 @@ func (s *PFCPSession) addPDRsUnsafe(pdrs pfcprule.PDRMap) {
 	sort.Sort(s.sortedPDR)
 }
 
-// Add FARs to the session
+// Update FARs to the session
 // This is an internal function, not thread safe
-func (s *PFCPSession) addFARsUnsafe(fars pfcprule.FARMap) {
+func (s *PFCPSession) updateFARsUnsafe(fars pfcprule.FARMap) {
 	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
+	if fars == nil {
+		return
+	}
 	for id, far := range fars {
 		s.far[id] = far
 	}
 }
 
-// Add PDRs and FARs to the session
-func (s PFCPSession) AddPDRsFARs(pdrs pfcprule.PDRMap, fars pfcprule.FARMap) {
+// Returns nil if each PDR from the PDRMap can be created, i.e. if PDRIDs are not already used
+// This is an internal function, not thread safe
+func (s *PFCPSession) checkPDRsNotExistUnsafe(pdrs pfcprule.PDRMap) error {
+	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
+	if pdrs == nil {
+		return nil
+	}
+	for id, _ := range pdrs {
+		if _, exists := s.pdr[id]; exists {
+			return fmt.Errorf("PDR with ID %d already exists", id)
+		}
+	}
+	return nil
+}
+
+// Returns nil if each FAR from the FARMap can be created, i.e. if FARIDs are not already used
+// This is an internal function, not thread safe
+func (s *PFCPSession) checkFARsNotExistUnsafe(fars pfcprule.FARMap) error {
+	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
+	if fars == nil {
+		return nil
+	}
+	for id, _ := range fars {
+		if _, exists := s.far[id]; exists {
+			return fmt.Errorf("FAR with ID %d already exists", id)
+		}
+	}
+	return nil
+}
+
+// Add/Update PDRs and FARs to the session
+func (s PFCPSession) AddUpdatePDRsFARs(createpdrs pfcprule.PDRMap, createfars pfcprule.FARMap, updatepdrs pfcprule.PDRMap, updatefars pfcprule.FARMap) error {
 	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
 	s.atomicMu.Lock()
 	defer s.atomicMu.Unlock()
-	s.addPDRsUnsafe(pdrs)
-	s.addFARsUnsafe(fars)
-	// TODO: if isUserPlane() -> send the Session Modification Request
+	if err := s.checkPDRsNotExistUnsafe(createpdrs); err != nil {
+		return err
+	}
+	if err := s.checkFARsNotExistUnsafe(createfars); err != nil {
+		return err
+	}
+	s.updatePDRsUnsafe(createpdrs)
+	s.updateFARsUnsafe(createfars)
+	s.updatePDRsUnsafe(updatepdrs)
+	s.updateFARsUnsafe(updatefars)
+	return nil
+	// TODO: if isControlPlane() -> send the Session Modification Request
 }
 
 // Set the remote FSEID of a PFCPSession

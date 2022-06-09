@@ -147,7 +147,7 @@ func handleSessionEstablishmentRequest(msg ReceivedMessage) error {
 	}
 
 	// TODO: Create other type IEs
-
+	// XXX: QER ie are ignored for the moment
 	// send response: session creation accepted
 	res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), session.LocalFSEID())
 	return msg.ReplyTo(res)
@@ -155,7 +155,7 @@ func handleSessionEstablishmentRequest(msg ReceivedMessage) error {
 
 func handleSessionModificationRequest(msg ReceivedMessage) error {
 	log.Println("Received Session Modification Request")
-	_, ok := msg.Message.(*message.SessionModificationRequest)
+	m, ok := msg.Message.(*message.SessionModificationRequest)
 	if !ok {
 		return fmt.Errorf("Issue with Session Modification Request")
 	}
@@ -215,8 +215,97 @@ func handleSessionModificationRequest(msg ReceivedMessage) error {
 	//	// PFCP session. The UP function shall use the new CP F-SEID for subsequent
 	//	// PFCP Session related messages for this PFCP Session
 	//
-	//XXX: ignored for the moment
-	res := message.NewSessionModificationResponse(0, 0, rseid, msg.Sequence(), 0, ie.NewCause(ie.CauseRequestRejected))
+	//XXX: CP F-SEID is ignored for the moment
+
+	// create PDRs
+	createpdrs, err, cause, offendingie := pfcprule.NewPDRs(m.CreatePDR)
+	if err != nil {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
+		return msg.ReplyTo(res)
+	}
+	createpdrsmap := make(pfcprule.PDRMap)
+	for _, pdr := range createpdrs {
+		if pdr == nil {
+			log.Println("A PDR is nil")
+			continue
+		}
+		id, err := pdr.ID()
+		if err != nil {
+			return err
+		}
+		createpdrsmap[id] = pdr
+	}
+
+	// create FARs
+	createfars, err, cause, offendingie := pfcprule.NewFARs(m.CreateFAR)
+	if err != nil {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
+		return msg.ReplyTo(res)
+	}
+	createfarsmap := make(pfcprule.FARMap)
+	for _, far := range createfars {
+		if far == nil {
+			log.Println("A FAR is nil")
+			continue
+		}
+		id, err := far.ID()
+		if err != nil {
+			return err
+		}
+		createfarsmap[id] = far
+	}
+
+	// update PDRs
+	updatepdrs, err, cause, offendingie := pfcprule.NewPDRs(m.UpdatePDR)
+	if err != nil {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
+		return msg.ReplyTo(res)
+	}
+	updatepdrsmap := make(pfcprule.PDRMap)
+	for _, pdr := range updatepdrs {
+		if pdr == nil {
+			log.Println("A PDR is nil")
+			continue
+		}
+		id, err := pdr.ID()
+		if err != nil {
+			return err
+		}
+		updatepdrsmap[id] = pdr
+	}
+
+	// update FARs
+	updatefars, err, cause, offendingie := pfcprule.NewFARs(m.UpdateFAR)
+	if err != nil {
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
+		return msg.ReplyTo(res)
+	}
+	updatefarsmap := make(pfcprule.FARMap)
+	for _, far := range updatefars {
+		if far == nil {
+			log.Println("A FAR is nil")
+			continue
+		}
+		id, err := far.ID()
+		if err != nil {
+			return err
+		}
+		updatefarsmap[id] = far
+	}
+
+	err = session.AddUpdatePDRsFARs(createpdrsmap, createfarsmap, updatepdrsmap, updatefarsmap)
+	if err != nil {
+		//XXX, offending IE
+		res := message.NewSessionModificationResponse(0, 0, rseid, msg.Sequence(), 0, ie.NewCause(ie.CauseRequestRejected))
+		return msg.ReplyTo(res)
+	}
+
+	//XXX: QER modification/creation is ignored for the moment
+	//XXX: Remove PDR
+	//XXX: Remove FAR
+	//XXX: RemoveQER
+
+	res := message.NewSessionModificationResponse(0, 0, rseid, msg.Sequence(), 0, ie.NewCause(ie.CauseRequestAccepted))
 	return msg.ReplyTo(res)
 }
 

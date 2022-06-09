@@ -203,9 +203,9 @@ func (e *PFCPEntity) Start() error {
 }
 
 func (e *PFCPEntity) IsUserPlane() bool {
-	return e.kind == "CP"
+	return e.kind == "UP"
 }
 
 func (e *PFCPEntity) IsControlPlane() bool {
-	return e.kind == "UP"
+	return e.kind == "CP"
 }

@@ -148,7 +148,6 @@ func (e *PFCPEntity) GetPFCPAssociation(nid string) (association api.PFCPAssocia
 }
 
 // Update an Association
-
 func (e *PFCPEntity) UpdatePFCPAssociation(association api.PFCPAssociationInterface) error {
 	return e.associationsMap.Update(association)
 }

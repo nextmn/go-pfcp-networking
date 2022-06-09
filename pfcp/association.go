@@ -18,9 +18,9 @@ import (
 )
 
 type PFCPAssociation struct {
-	api.PFCPPeerInterface               // connection to remote peer
-	isSetup               bool          // true when session is already set-up
-	sessionIDPool         SessionIDPool // used to generate SEIDs for this association
+	api.PFCPPeerInterface                // connection to remote peer
+	isSetup               bool           // true when session is already set-up
+	sessionIDPool         *SessionIDPool // used to generate SEIDs for this association
 }
 
 // Create a new PFCPAssociation, this association is already set-up

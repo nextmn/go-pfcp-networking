@@ -19,9 +19,9 @@ type SessionIDPool struct {
 }
 
 // Create a SessionIDPool
-func NewSessionIDPool() SessionIDPool {
-	return SessionIDPool{
-		currentSessionID: 0,
+func NewSessionIDPool() *SessionIDPool {
+	return &SessionIDPool{
+		currentSessionID: 1,
 		muSessionID:      sync.Mutex{},
 	}
 }

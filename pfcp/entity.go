@@ -191,7 +191,8 @@ func (e *PFCPEntity) Start() error {
 			}
 			f, err := e.GetHandler(msg.MessageType())
 			if err != nil {
-				log.Println(err)
+				log.Println("No Handler for message of this type:", err)
+				continue
 			}
 			err = f(ReceivedMessage{Message: msg, SenderAddr: addr, Entity: e})
 			if err != nil {

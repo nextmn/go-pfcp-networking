@@ -143,9 +143,11 @@ func NewPDRs(pdrs []*ie.IE) (p []*PDR, err error, cause uint8, offendingIE uint1
 
 		// conditional IE
 		var ohrIE *ie.IE
-		ohr, err := pdr.OuterHeaderRemoval()
+		ohrGTPUExtensionHeaderDeletion, _ := ohrIE.GTPUExtensionHeaderDeletion()
+		// This extension is optional for backward compatibility, default is 0
+		ohrRemovalDescription, err := ohrIE.OuterHeaderRemovalDescription()
 		if err == nil {
-			ohrIE = ie.NewOuterHeaderRemoval(ohr[0], ohr[1])
+			ohrIE = ie.NewOuterHeaderRemoval(ohrRemovalDescription, ohrGTPUExtensionHeaderDeletion)
 		} else if err == io.ErrUnexpectedEOF {
 			return nil, err, ie.CauseInvalidLength, ie.OuterHeaderRemoval
 		}

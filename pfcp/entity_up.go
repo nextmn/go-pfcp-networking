@@ -31,5 +31,8 @@ func (e *PFCPEntityUP) initDefaultHandlers() error {
 	if err := e.AddHandler(message.MsgTypeSessionEstablishmentRequest, handleSessionEstablishmentRequest); err != nil {
 		return err
 	}
+	if err := e.AddHandler(message.MsgTypeSessionModificationRequest, handleSessionModificationRequest); err != nil {
+		return err
+	}
 	return nil
 }

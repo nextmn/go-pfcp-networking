@@ -88,12 +88,14 @@ func NewFARs(fars []*ie.IE) (far FARs, err error, cause uint8, offendingIE uint1
 		// This IE shall be present when the Apply Action requests
 		// the packets to be forwarded. It may be present otherwise.
 		if err != nil {
-			if err == io.ErrUnexpectedEOF {
-				return nil, err, ie.CauseInvalidLength, ie.ForwardingParameters
-			}
-			if ie.NewApplyAction(aa).HasFORW() && err == ie.ErrIENotFound {
-				return nil, err, ie.CauseConditionalIEMissing, ie.ForwardingParameters
-			}
+			//XXX:  workaround for a free5gc-smf bug: Forwarding Parameters are missing sometimes
+			fp = make([]*ie.IE, 0)
+			//			if err == io.ErrUnexpectedEOF {
+			//				return nil, err, ie.CauseInvalidLength, ie.ForwardingParameters
+			//			}
+			//			if ie.NewApplyAction(aa).HasFORW() && err == ie.ErrIENotFound {
+			//				return nil, err, ie.CauseConditionalIEMissing, ie.ForwardingParameters
+			//			}
 		}
 
 		f = append(f,

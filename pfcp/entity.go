@@ -219,3 +219,42 @@ func (e *PFCPEntity) IsUserPlane() bool {
 func (e *PFCPEntity) IsControlPlane() bool {
 	return e.kind == "CP"
 }
+
+func (e *PFCPEntity) PrintPFCPRules() {
+	for _, session := range e.GetPFCPSessions() {
+		localIPAddress, err := session.LocalIPAddress()
+		if err != nil {
+			continue
+		}
+		localSEID, err := session.LocalSEID()
+		if err != nil {
+			continue
+		}
+		remoteIPAddress, err := session.RemoteIPAddress()
+		if err != nil {
+			continue
+		}
+		remoteSEID, err := session.RemoteSEID()
+		if err != nil {
+			continue
+		}
+
+		log.Printf("PFCP Session: Local F-SEID [%s (%s)], Remote F-SEID [%s (%s)]\n",
+			localIPAddress.String(), localSEID,
+			remoteIPAddress.String(), remoteSEID)
+		for _, pdr := range session.GetPDRs() {
+			pdrid, err := pdr.ID()
+			if err != nil {
+				continue
+			}
+			farid, err := pdr.FARID()
+			if err != nil {
+				continue
+			}
+			log.Printf("\t↦ PDR %d\n", pdrid)
+			log.Printf("\t\t↪ FAR %d\n", farid)
+		}
+		log.Printf("\n")
+	}
+
+}

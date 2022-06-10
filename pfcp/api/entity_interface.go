@@ -25,4 +25,5 @@ type PFCPEntityInterface interface {
 	UpdatePFCPAssociation(association PFCPAssociationInterface) error
 	AddEstablishedPFCPSession(session PFCPSessionInterface) error
 	UpdatePFCPSession(session PFCPSessionInterface) error
+	PrintPFCPRules()
 }

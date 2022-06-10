@@ -251,8 +251,8 @@ func (e *PFCPEntity) PrintPFCPRules() {
 			if err != nil {
 				continue
 			}
-			log.Printf("\t↦ PDR %d\n", pdrid)
-			log.Printf("\t\t↪ FAR %d\n", farid)
+			log.Printf("  ↦ PDR %d\n", pdrid)
+			log.Printf("    ↪ FAR %d\n", farid)
 		}
 		log.Printf("\n")
 	}

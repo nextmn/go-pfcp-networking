@@ -309,6 +309,12 @@ func handleSessionModificationRequest(msg ReceivedMessage) error {
 		res := message.NewSessionModificationResponse(0, 0, rseid, msg.Sequence(), 0, ie.NewCause(ie.CauseRequestRejected))
 		return msg.ReplyTo(res)
 	}
+	err = msg.Entity.UpdatePFCPSession(session)
+	if err != nil {
+		// Send cause(Rule creation/modification failure)
+		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseSystemFailure))
+		return msg.ReplyTo(res)
+	}
 
 	//XXX: QER modification/creation is ignored for the moment
 	//XXX: Remove PDR

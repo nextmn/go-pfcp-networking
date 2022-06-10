@@ -24,4 +24,5 @@ type PFCPEntityInterface interface {
 	GetPFCPSession(localIP string, seid SEID) (PFCPSessionInterface, error)
 	UpdatePFCPAssociation(association PFCPAssociationInterface) error
 	AddEstablishedPFCPSession(session PFCPSessionInterface) error
+	UpdatePFCPSession(session PFCPSessionInterface) error
 }

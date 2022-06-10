@@ -239,7 +239,7 @@ func (e *PFCPEntity) PrintPFCPRules() {
 			continue
 		}
 
-		log.Printf("PFCP Session: Local F-SEID [%s (%s)], Remote F-SEID [%s (%s)]\n",
+		log.Printf("PFCP Session: Local F-SEID [%s (%d)], Remote F-SEID [%s (%d)]\n",
 			localIPAddress.String(), localSEID,
 			remoteIPAddress.String(), remoteSEID)
 		for _, pdr := range session.GetPDRs() {

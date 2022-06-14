@@ -24,4 +24,5 @@ type PFCPSessionInterface interface {
 	AddUpdatePDRsFARs(createpdrs pfcprule.PDRMap, createfars pfcprule.FARMap, updatepdr pfcprule.PDRMap, updatefars pfcprule.FARMap) error
 	//	SetRemoteFSEID(FSEID *ie.IE)
 	Setup() error
+	TimeUpdated() uint32
 }

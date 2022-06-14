@@ -37,7 +37,12 @@ type PFCPSession struct {
 	far pfcprule.FARMap
 	// allows to perform atomic operations
 	// This RWMutex applies on sortedPDR, pdr, and far
-	atomicMu sync.RWMutex
+	atomicMu    sync.RWMutex
+	timeUpdated uint32
+}
+
+func (session *PFCPSession) TimeUpdated() uint32 {
+	return session.timeUpdated
 }
 
 // Create an EstablishedPFCPSession
@@ -53,6 +58,7 @@ func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid, 
 		far:           fars,
 		sortedPDR:     make(pfcprule.PDRs, 0),
 		atomicMu:      sync.RWMutex{},
+		timeUpdated:   0,
 	}
 	if fseid != nil {
 		fseidFields, err := fseid.FSEID()
@@ -240,6 +246,7 @@ func (s PFCPSession) AddUpdatePDRsFARs(createpdrs pfcprule.PDRMap, createfars pf
 	s.updateFARsUnsafe(createfars)
 	s.updatePDRsUnsafe(updatepdrs)
 	s.updateFARsUnsafe(updatefars)
+	s.timeUpdated += 1
 	return nil
 	// TODO: if isControlPlane() -> send the Session Modification Request
 }

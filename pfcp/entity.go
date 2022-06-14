@@ -340,7 +340,10 @@ func (e *PFCPEntity) PrintPFCPRules() {
 				default:
 					OuterHeaderCreationLabel = "Other"
 				}
+			} else {
+				log.Println("No outer header creation for FAR", farid)
 			}
+
 			DestinationInterfaceLabel := "Not defined"
 			if destination, err := ForwardingParametersIe.DestinationInterface(); err == nil {
 				switch destination {
@@ -357,6 +360,8 @@ func (e *PFCPEntity) PrintPFCPRules() {
 				case ie.DstInterface5GVNInternal:
 					DestinationInterfaceLabel = "5G VN Internal"
 				}
+			} else {
+				log.Println("No destination interface for FAR", farid)
 			}
 
 			log.Printf("  ↦ [PDR %d] (%d) Source interface: %s, OHR: %s, F-TEID: %s, UE IP: %s\n", pdrid, precedence, sourceInterfaceLabel, OuterHeaderRemovalLabel, fteidLabel, ueIpAddressLabel)

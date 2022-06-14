@@ -275,18 +275,30 @@ func (e *PFCPEntity) PrintPFCPRules() {
 			ueipaddress, err := pdi.UEIPAddress()
 			ueIpAddressLabel := "Any"
 			if err == nil {
-				{
-					ueIpAddressIE := ie.NewUEIPAddress(ueipaddress.Flags, ueipaddress.IPv4Address.String(), ueipaddress.IPv6Address.String(), ueipaddress.IPv6PrefixDelegationBits, ueipaddress.IPv6PrefixLength)
-					switch {
-					case ueIpAddressIE.HasIPv4():
-						ueIpAddressLabel = ueipaddress.IPv4Address.String()
-					case ueIpAddressIE.HasIPv6():
-						ueIpAddressLabel = ueipaddress.IPv6Address.String()
-					}
+				ueIpAddressIE := ie.NewUEIPAddress(ueipaddress.Flags, ueipaddress.IPv4Address.String(), ueipaddress.IPv6Address.String(), ueipaddress.IPv6PrefixDelegationBits, ueipaddress.IPv6PrefixLength)
+				switch {
+				case ueIpAddressIE.HasIPv4():
+					ueIpAddressLabel = ueipaddress.IPv4Address.String()
+				case ueIpAddressIE.HasIPv6():
+					ueIpAddressLabel = ueipaddress.IPv6Address.String()
 				}
 			}
+			fteid, err := pdi.FTEID()
+			fteidLabel := "Not defined"
+			if err == nil {
+				fteidIE := ie.NewFTEID(fteid.Flags, fteid.TEID, fteid.IPv4Address, fteid.IPv6Address, fteid.ChooseID)
+				switch {
+				case fteidIE.HasIPv4() && fteidIE.HasIPv6():
+					fteidLabel = fmt.Sprintf("[%s/%s (%d)]", fteid.IPv4Address, fteid.IPv6Address, fteid.TEID)
+				case fteidIE.HasIPv4():
+					fteidLabel = fmt.Sprintf("[%s (%d)]", fteid.IPv4Address, fteid.TEID)
+				case fteidIE.HasIPv6():
+					fteidLabel = fmt.Sprintf("[%s (%d)]", fteid.IPv6Address, fteid.TEID)
+				}
 
-			log.Printf("  ↦ [PDR %d] Source interface: %s, UE IP: %s\n", pdrid, sourceInterfaceLabel, ueIpAddressLabel)
+			}
+
+			log.Printf("  ↦ [PDR %d] Source interface: %s, F-TEID: %s, UE IP: %s\n", pdrid, sourceInterfaceLabel, fteidLabel, ueIpAddressLabel)
 			log.Printf("    ↪ [FAR %d]\n", farid)
 		}
 		log.Printf("\n")

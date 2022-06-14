@@ -256,9 +256,8 @@ func (e *PFCPEntity) PrintPFCPRules() {
 				continue
 			}
 			pdi := ie.NewPDI(pdicontent...)
-			sourceInterface, err := pdi.SourceInterface()
 			sourceInterfaceLabel := "Not defined"
-			if err == nil {
+			if sourceInterface, err := pdi.SourceInterface(); err == nil {
 				switch sourceInterface {
 				case ie.SrcInterfaceAccess:
 					sourceInterfaceLabel = "Access"
@@ -272,9 +271,8 @@ func (e *PFCPEntity) PrintPFCPRules() {
 					sourceInterfaceLabel = "5G VN Internal"
 				}
 			}
-			ueipaddress, err := pdi.UEIPAddress()
 			ueIpAddressLabel := "Any"
-			if err == nil {
+			if ueipaddress, err := pdi.UEIPAddress(); err == nil {
 				ueIpAddressIE := ie.NewUEIPAddress(ueipaddress.Flags, ueipaddress.IPv4Address.String(), ueipaddress.IPv6Address.String(), ueipaddress.IPv6PrefixDelegationBits, ueipaddress.IPv6PrefixLength)
 				switch {
 				case ueIpAddressIE.HasIPv4():
@@ -283,9 +281,8 @@ func (e *PFCPEntity) PrintPFCPRules() {
 					ueIpAddressLabel = ueipaddress.IPv6Address.String()
 				}
 			}
-			fteid, err := pdi.FTEID()
 			fteidLabel := "Not defined"
-			if err == nil {
+			if fteid, err := pdi.FTEID(); err == nil {
 				fteidIE := ie.NewFTEID(fteid.Flags, fteid.TEID, fteid.IPv4Address, fteid.IPv6Address, fteid.ChooseID)
 				switch {
 				case fteidIE.HasIPv4() && fteidIE.HasIPv6():
@@ -298,8 +295,62 @@ func (e *PFCPEntity) PrintPFCPRules() {
 
 			}
 
-			log.Printf("  ↦ [PDR %d] Source interface: %s, F-TEID: %s, UE IP: %s\n", pdrid, sourceInterfaceLabel, fteidLabel, ueIpAddressLabel)
-			log.Printf("    ↪ [FAR %d]\n", farid)
+			OuterHeaderRemovalLabel := "No"
+			if ohr, err := pdi.OuterHeaderRemovalDescription(); err == nil {
+				if ohr == 0 || ohr == 1 || ohr == 6 {
+					OuterHeaderRemovalLabel = "GTP"
+				} else {
+					OuterHeaderRemovalLabel = "Yes (but no GTP)"
+				}
+			}
+
+			OuterHeaderCreationLabel := "No"
+			if ohc, err := pdi.OuterHeaderCreation(); err == nil {
+				ohcb, _ := ohc.Marshal()
+				ohcIe := ie.New(ie.OuterHeaderCreation, ohcb)
+				switch {
+				case ohcIe.HasTEID() && ohcIe.HasIPv4():
+					OuterHeaderCreationLabel = fmt.Sprintf("[%s (%d)]", ohc.IPv4Address.String(), ohc.TEID)
+				case ohcIe.HasTEID() && ohcIe.HasIPv6():
+					OuterHeaderCreationLabel = fmt.Sprintf("[%s (%d)]", ohc.IPv6Address.String(), ohc.TEID)
+				default:
+					OuterHeaderCreationLabel = "Other"
+				}
+			}
+
+			ApplyActionLabel := "No"
+			if applyaction, err := pdi.ApplyAction(); err == nil {
+				applyActionIE := ie.NewApplyAction(applyaction)
+				switch {
+				case applyActionIE.HasDROP():
+					ApplyActionLabel = "DROP"
+				case applyActionIE.HasFORW():
+					ApplyActionLabel = "FORW"
+				default:
+					ApplyActionLabel = "Other"
+				}
+			}
+
+			DestinationInterfaceLabel := "Not defined"
+			if destination, err := pdi.DestinationInterface(); err == nil {
+				switch destination {
+				case ie.DstInterfaceAccess:
+					DestinationInterfaceLabel = "Access"
+				case ie.DstInterfaceCore:
+					DestinationInterfaceLabel = "Core"
+				case ie.DstInterfaceSGiLANN6LAN:
+					DestinationInterfaceLabel = "SGi-LAN/N6-LAN"
+				case ie.DstInterfaceCPFunction:
+					DestinationInterfaceLabel = "CP Function"
+				case ie.DstInterfaceLIFunction:
+					DestinationInterfaceLabel = "LI Function"
+				case ie.DstInterface5GVNInternal:
+					DestinationInterfaceLabel = "5G VN Internal"
+				}
+			}
+
+			log.Printf("  ↦ [PDR %d] Source interface: %s, OHR: %s, F-TEID: %s, UE IP: %s\n", pdrid, sourceInterfaceLabel, OuterHeaderRemovalLabel, fteidLabel, ueIpAddressLabel)
+			log.Printf("    ↪ [FAR %d] OHC: %s, ApplyAction: %s, Destination interface: %s\n", farid, OuterHeaderCreationLabel, ApplyActionLabel, DestinationInterfaceLabel)
 		}
 		log.Printf("\n")
 	}

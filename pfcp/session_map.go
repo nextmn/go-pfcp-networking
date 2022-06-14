@@ -20,7 +20,7 @@ type SessionsMap struct {
 }
 
 // Add a session to the map
-func (sm SessionsMap) Add(session api.PFCPSessionInterface) error {
+func (sm *SessionsMap) Add(session api.PFCPSessionInterface) error {
 	sm.muSessions.Lock()
 	defer sm.muSessions.Unlock()
 	// Get splitted F-SEID
@@ -43,15 +43,15 @@ func (sm SessionsMap) Add(session api.PFCPSessionInterface) error {
 }
 
 // Create a new SessionMap
-func NewSessionsMap() SessionsMap {
-	return SessionsMap{
+func NewSessionsMap() *SessionsMap {
+	return &SessionsMap{
 		sessions:   make(sessionsMapFSEID, 0),
 		muSessions: sync.RWMutex{},
 	}
 }
 
 // Returns pfcpsessions in an array
-func (sm SessionsMap) GetPFCPSessions() []api.PFCPSessionInterface {
+func (sm *SessionsMap) GetPFCPSessions() []api.PFCPSessionInterface {
 	sm.muSessions.RLock()
 	defer sm.muSessions.RUnlock()
 	sessions := make([]api.PFCPSessionInterface, 0)
@@ -64,7 +64,7 @@ func (sm SessionsMap) GetPFCPSessions() []api.PFCPSessionInterface {
 }
 
 // Returns a PFCP Session by its FSEID
-func (sm SessionsMap) GetPFCPSession(localIP string, seid api.SEID) (api.PFCPSessionInterface, error) {
+func (sm *SessionsMap) GetPFCPSession(localIP string, seid api.SEID) (api.PFCPSessionInterface, error) {
 	sm.muSessions.RLock()
 	defer sm.muSessions.RUnlock()
 	if sessions, ipexists := sm.sessions[localIP]; ipexists {
@@ -79,7 +79,7 @@ func (sm SessionsMap) GetPFCPSession(localIP string, seid api.SEID) (api.PFCPSes
 }
 
 // Update Sesion
-func (sm SessionsMap) Update(session api.PFCPSessionInterface) error {
+func (sm *SessionsMap) Update(session api.PFCPSessionInterface) error {
 	sm.muSessions.Lock()
 	defer sm.muSessions.Unlock()
 	// Get splitted F-SEID

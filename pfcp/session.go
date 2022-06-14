@@ -176,14 +176,16 @@ func (s *PFCPSession) updatePDRsUnsafe(pdrs pfcprule.PDRMap) {
 	if pdrs == nil {
 		return
 	}
+	pdrtmp := s.pdr
 	for id, pdr := range pdrs {
-		if _, exists := s.pdr[id]; !exists {
+		if _, exists := pdrtmp[id]; !exists {
 			// PDR should be only once in sorted list
 			s.sortedPDR = append(s.sortedPDR, pdr)
 		}
 		log.Printf("Updating/Creating PDR %d\n", id)
-		s.pdr[id] = pdr
+		pdrtmp[id] = pdr
 	}
+	s.pdr = pdrtmp
 	sort.Sort(s.sortedPDR)
 }
 
@@ -194,10 +196,12 @@ func (s *PFCPSession) updateFARsUnsafe(fars pfcprule.FARMap) {
 	if fars == nil {
 		return
 	}
+	fartmp := s.far
 	for id, far := range fars {
 		log.Printf("Updating/Creating FAR %d\n", id)
-		s.far[id] = far
+		fartmp[id] = far
 	}
+	s.far = fartmp
 }
 
 // Returns nil if each PDR from the PDRMap can be created, i.e. if PDRIDs are not already used

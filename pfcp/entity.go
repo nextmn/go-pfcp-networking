@@ -255,6 +255,10 @@ func (e *PFCPEntity) PrintPFCPRules() {
 			if err != nil {
 				continue
 			}
+			far, err := session.GetFAR(farid)
+			if err != nil {
+				continue
+			}
 			pdi := ie.NewPDI(pdicontent...)
 			sourceInterfaceLabel := "Not defined"
 			if sourceInterface, err := pdi.SourceInterface(); err == nil {
@@ -304,8 +308,21 @@ func (e *PFCPEntity) PrintPFCPRules() {
 				}
 			}
 
+			ApplyActionLabel := "No"
+			if ApplyActionIE := far.ApplyAction(); ApplyActionIE != nil {
+				switch {
+				case ApplyActionIE.HasDROP():
+					ApplyActionLabel = "DROP"
+				case ApplyActionIE.HasFORW():
+					ApplyActionLabel = "FORW"
+				default:
+					ApplyActionLabel = "Other"
+				}
+			}
+
+			ForwardingParametersIe := far.ForwardingParameters()
 			OuterHeaderCreationLabel := "No"
-			if ohc, err := pdi.OuterHeaderCreation(); err == nil {
+			if ohc, err := ForwardingParametersIe.OuterHeaderCreation(); err == nil {
 				ohcb, _ := ohc.Marshal()
 				ohcIe := ie.New(ie.OuterHeaderCreation, ohcb)
 				switch {
@@ -317,22 +334,8 @@ func (e *PFCPEntity) PrintPFCPRules() {
 					OuterHeaderCreationLabel = "Other"
 				}
 			}
-
-			ApplyActionLabel := "No"
-			if applyaction, err := pdi.ApplyAction(); err == nil {
-				applyActionIE := ie.NewApplyAction(applyaction)
-				switch {
-				case applyActionIE.HasDROP():
-					ApplyActionLabel = "DROP"
-				case applyActionIE.HasFORW():
-					ApplyActionLabel = "FORW"
-				default:
-					ApplyActionLabel = "Other"
-				}
-			}
-
 			DestinationInterfaceLabel := "Not defined"
-			if destination, err := pdi.DestinationInterface(); err == nil {
+			if destination, err := ForwardingParametersIe.DestinationInterface(); err == nil {
 				switch destination {
 				case ie.DstInterfaceAccess:
 					DestinationInterfaceLabel = "Access"

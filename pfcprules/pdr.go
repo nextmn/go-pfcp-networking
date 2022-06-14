@@ -94,7 +94,7 @@ func NewCreatePDRs(pdrs PDRMap) []*ie.IE {
 	return p
 }
 
-func NewPDRs(pdrs []*ie.IE) (p []*PDR, err error, cause uint8, offendingIE uint16) {
+func NewPDRs(pdrs []*ie.IE) (p PDRs, err error, cause uint8, offendingIE uint16) {
 	for _, pdr := range pdrs {
 		id, err := pdr.PDRID()
 		if err != nil {

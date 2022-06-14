@@ -304,11 +304,14 @@ func (e *PFCPEntity) PrintPFCPRules() {
 			}
 
 			OuterHeaderRemovalLabel := "No"
-			if ohr, err := pdr.OuterHeaderRemoval().OuterHeaderRemovalDescription(); err == nil {
-				if ohr == 0 || ohr == 1 || ohr == 6 {
-					OuterHeaderRemovalLabel = "GTP"
-				} else {
-					OuterHeaderRemovalLabel = "Yes (but no GTP)"
+			ohrIe := pdr.OuterHeaderRemoval()
+			if ohrIe != nil {
+				if ohr, err := ohrIe.OuterHeaderRemovalDescription(); err == nil {
+					if ohr == 0 || ohr == 1 || ohr == 6 {
+						OuterHeaderRemovalLabel = "GTP"
+					} else {
+						OuterHeaderRemovalLabel = "Yes (but no GTP)"
+					}
 				}
 			}
 

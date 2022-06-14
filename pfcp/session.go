@@ -41,8 +41,8 @@ type PFCPSession struct {
 	timeUpdated uint32
 }
 
-func (session PFCPSession) TimeUpdated() uint32 {
-	return session.timeUpdated
+func (s *PFCPSession) TimeUpdated() uint32 {
+	return s.timeUpdated
 }
 
 // Create an EstablishedPFCPSession
@@ -83,19 +83,19 @@ func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid, 
 		return nil, err
 	}
 	// Add to SessionFSEIDMap of LocalEntity
-	s.association.LocalEntity().AddEstablishedPFCPSession(s)
-	return s, nil
+	s.association.LocalEntity().AddEstablishedPFCPSession(&s)
+	return &s, nil
 }
 
 // Get local F-SEID of this session
 // This value should be used when a session related message is received.
-func (s PFCPSession) LocalFSEID() *ie.IE {
+func (s *PFCPSession) LocalFSEID() *ie.IE {
 	return s.localFseid
 }
 
 // Get SEID part of local F-SEID
 // This value should be used when a session related message is received.
-func (s PFCPSession) LocalSEID() (api.SEID, error) {
+func (s *PFCPSession) LocalSEID() (api.SEID, error) {
 	fseid, err := s.localFseid.FSEID()
 	if err != nil {
 		return 0, err
@@ -105,7 +105,7 @@ func (s PFCPSession) LocalSEID() (api.SEID, error) {
 
 // Get IP Address part of local F-SEID
 // This value should be used when a session related message is received.
-func (s PFCPSession) LocalIPAddress() (net.IP, error) {
+func (s *PFCPSession) LocalIPAddress() (net.IP, error) {
 	// XXX: handle case where both HasIPv6 and HasIPv4 are set
 	fseid, err := s.localFseid.FSEID()
 	if err != nil {
@@ -123,13 +123,13 @@ func (s PFCPSession) LocalIPAddress() (net.IP, error) {
 
 // Get remote F-SEID of this session
 // This value should be used when a session related message is send.
-func (s PFCPSession) RemoteFSEID() *ie.IE {
+func (s *PFCPSession) RemoteFSEID() *ie.IE {
 	return s.remoteFseid
 }
 
 // Get SEID part of remote F-SEID
 // This value should be used when a session related message is send.
-func (s PFCPSession) RemoteSEID() (api.SEID, error) {
+func (s *PFCPSession) RemoteSEID() (api.SEID, error) {
 	fseid, err := s.remoteFseid.FSEID()
 	if err != nil {
 		return 0, err
@@ -139,7 +139,7 @@ func (s PFCPSession) RemoteSEID() (api.SEID, error) {
 
 // Get IP Address part of remote F-SEID
 // This value should be used when a session related message is send.
-func (s PFCPSession) RemoteIPAddress() (net.IP, error) {
+func (s *PFCPSession) RemoteIPAddress() (net.IP, error) {
 	// XXX: handle case where both HasIPv6 and HasIPv4 are set
 	fseid, err := s.remoteFseid.FSEID()
 	if err != nil {
@@ -159,14 +159,14 @@ func (s PFCPSession) RemoteIPAddress() (net.IP, error) {
 // For PDI checking, the checking order is:
 // look first at the first item of the array,
 // look last at the last item of the array.
-func (s PFCPSession) GetPDRs() pfcprule.PDRs {
+func (s *PFCPSession) GetPDRs() pfcprule.PDRs {
 	s.atomicMu.RLock()
 	defer s.atomicMu.RUnlock()
 	return s.sortedPDR
 }
 
 // Get FAR associated with this FARID
-func (s PFCPSession) GetFAR(farid pfcprule.FARID) (*pfcprule.FAR, error) {
+func (s *PFCPSession) GetFAR(farid pfcprule.FARID) (*pfcprule.FAR, error) {
 	s.atomicMu.RLock()
 	defer s.atomicMu.RUnlock()
 	if far, ok := s.far[farid]; ok {
@@ -232,7 +232,7 @@ func (s *PFCPSession) checkFARsNotExistUnsafe(fars pfcprule.FARMap) error {
 }
 
 // Add/Update PDRs and FARs to the session
-func (s PFCPSession) AddUpdatePDRsFARs(createpdrs pfcprule.PDRMap, createfars pfcprule.FARMap, updatepdrs pfcprule.PDRMap, updatefars pfcprule.FARMap) error {
+func (s *PFCPSession) AddUpdatePDRsFARs(createpdrs pfcprule.PDRMap, createfars pfcprule.FARMap, updatepdrs pfcprule.PDRMap, updatefars pfcprule.FARMap) error {
 	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
 	s.atomicMu.Lock()
 	defer s.atomicMu.Unlock()
@@ -263,7 +263,7 @@ func (s PFCPSession) AddUpdatePDRsFARs(createpdrs pfcprule.PDRMap, createfars pf
 // performing the PFCP Session Establishment Procedure (if CP function),
 // or by doing nothing particular (if UP function) since
 // the PFCP Session Establishment Procedure is already performed
-func (s PFCPSession) Setup() error {
+func (s *PFCPSession) Setup() error {
 	if s.isEstablished {
 		return fmt.Errorf("Session is already establihed")
 	}

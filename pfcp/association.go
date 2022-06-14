@@ -34,7 +34,7 @@ func newEstablishedPFCPAssociation(peer api.PFCPPeerInterface) (api.PFCPAssociat
 	if err != nil {
 		return nil, err
 	}
-	return association, nil
+	return &association, nil
 }
 
 // Get next available SEID for this PFCPAssociation.
@@ -42,7 +42,7 @@ func newEstablishedPFCPAssociation(peer api.PFCPPeerInterface) (api.PFCPAssociat
 // F-SEID are constitued of IPv4 and/or IPv6 address(es) of the peer
 // plus the SEID. So as long as SEID are unique per peer (i.e. per PFCPAssociation),
 // everything should be okay.
-func (association PFCPAssociation) GetNextSEID() api.SEID {
+func (association *PFCPAssociation) GetNextSEID() api.SEID {
 	return association.sessionIDPool.GetNext()
 }
 
@@ -58,7 +58,7 @@ func (association PFCPAssociation) GetNextSEID() api.SEID {
 // clause 6.2.6.3).
 // The CP function and the UP function shall support the PFCP Association Setup initiated by the CP function. The CP
 // function and the UP function may additionally support the PFCP Association Setup initiated by the UP function.
-func (association PFCPAssociation) SetupInitiatedByCP() error {
+func (association *PFCPAssociation) SetupInitiatedByCP() error {
 	if association.isSetup {
 		return fmt.Errorf("Association is already set up")
 	}
@@ -159,7 +159,7 @@ func (association *PFCPAssociation) getFSEID(seid api.SEID) (*ie.IE, error) {
 }
 
 // remoteFseid can be nil if caller is at CP function side
-func (association PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs pfcprule.PDRs, fars pfcprule.FARs) (session api.PFCPSessionInterface, err error) {
+func (association *PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs pfcprule.PDRs, fars pfcprule.FARs) (session api.PFCPSessionInterface, err error) {
 	// Generation of the F-SEID
 	localSEID := association.GetNextSEID()
 	localFseid, err := association.getFSEID(localSEID)

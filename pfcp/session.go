@@ -41,7 +41,7 @@ type PFCPSession struct {
 	timeUpdated uint32
 }
 
-func (session *PFCPSession) TimeUpdated() uint32 {
+func (session PFCPSession) TimeUpdated() uint32 {
 	return session.timeUpdated
 }
 

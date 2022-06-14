@@ -202,6 +202,11 @@ func (s *PFCPSession) updateFARsUnsafe(fars pfcprule.FARMap) {
 		fartmp[id] = far
 	}
 	s.far = fartmp
+	for id, far := range fars {
+		if far.ForwardingParameters() == nil {
+			log.Println("Nil Forwarding Parameters in FAR", id)
+		}
+	}
 }
 
 // Returns nil if each PDR from the PDRMap can be created, i.e. if PDRIDs are not already used

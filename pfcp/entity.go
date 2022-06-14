@@ -247,6 +247,10 @@ func (e *PFCPEntity) PrintPFCPRules() {
 			if err != nil {
 				continue
 			}
+			precedence, err := pdr.Precedence()
+			if err != nil {
+				continue
+			}
 			farid, err := pdr.FARID()
 			if err != nil {
 				continue
@@ -300,7 +304,7 @@ func (e *PFCPEntity) PrintPFCPRules() {
 			}
 
 			OuterHeaderRemovalLabel := "No"
-			if ohr, err := pdi.OuterHeaderRemovalDescription(); err == nil {
+			if ohr, err := pdr.OuterHeaderRemoval().OuterHeaderRemovalDescription(); err == nil {
 				if ohr == 0 || ohr == 1 || ohr == 6 {
 					OuterHeaderRemovalLabel = "GTP"
 				} else {
@@ -352,7 +356,7 @@ func (e *PFCPEntity) PrintPFCPRules() {
 				}
 			}
 
-			log.Printf("  ↦ [PDR %d] Source interface: %s, OHR: %s, F-TEID: %s, UE IP: %s\n", pdrid, sourceInterfaceLabel, OuterHeaderRemovalLabel, fteidLabel, ueIpAddressLabel)
+			log.Printf("  ↦ [PDR %d] (%d) Source interface: %s, OHR: %s, F-TEID: %s, UE IP: %s\n", pdrid, precedence, sourceInterfaceLabel, OuterHeaderRemovalLabel, fteidLabel, ueIpAddressLabel)
 			log.Printf("    ↪ [FAR %d] OHC: %s, ApplyAction: %s, Destination interface: %s\n", farid, OuterHeaderCreationLabel, ApplyActionLabel, DestinationInterfaceLabel)
 		}
 		log.Printf("\n")

@@ -177,8 +177,11 @@ func (s *PFCPSession) updatePDRsUnsafe(pdrs pfcprule.PDRMap) {
 		return
 	}
 	for id, pdr := range pdrs {
+		if _, exists := s.pdr[id]; !exists {
+			// PDR should be only once in sorted list
+			s.sortedPDR = append(s.sortedPDR, pdr)
+		}
 		s.pdr[id] = pdr
-		s.sortedPDR = append(s.sortedPDR, pdr)
 	}
 	sort.Sort(s.sortedPDR)
 }

@@ -273,19 +273,22 @@ func (e *PFCPEntity) PrintPFCPRules() {
 				}
 			}
 			ueipaddress, err := pdi.UEIPAddress()
-			ueIpAddressIE := ie.NewUEIPAddress(ueipaddress.Flags, ueipaddress.IPv4Address.String(), ueipaddress.IPv6Address.String(), ueipaddress.IPv6PrefixDelegationBits, ueipaddress.IPv6PrefixLength)
 			ueIpAddressLabel := "Any"
-			switch {
-			case ueIpAddressIE.HasIPv4():
-				ueIpAddressLabel = ueipaddress.IPv4Address.String()
-			case ueIpAddressIE.HasIPv6():
-				ueIpAddressLabel = ueipaddress.IPv6Address.String()
+			if err == nil {
+				{
+					ueIpAddressIE := ie.NewUEIPAddress(ueipaddress.Flags, ueipaddress.IPv4Address.String(), ueipaddress.IPv6Address.String(), ueipaddress.IPv6PrefixDelegationBits, ueipaddress.IPv6PrefixLength)
+					switch {
+					case ueIpAddressIE.HasIPv4():
+						ueIpAddressLabel = ueipaddress.IPv4Address.String()
+					case ueIpAddressIE.HasIPv6():
+						ueIpAddressLabel = ueipaddress.IPv6Address.String()
+					}
+				}
 			}
 
-			log.Printf("  ↦ [PDR %d] Source interface: , UE IP: %s%s\n", pdrid, sourceInterfaceLabel, ueIpAddressLabel)
+			log.Printf("  ↦ [PDR %d] Source interface: %s, UE IP: %s\n", pdrid, sourceInterfaceLabel, ueIpAddressLabel)
 			log.Printf("    ↪ [FAR %d]\n", farid)
 		}
 		log.Printf("\n")
 	}
-
 }

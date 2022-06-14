@@ -251,7 +251,29 @@ func (e *PFCPEntity) PrintPFCPRules() {
 			if err != nil {
 				continue
 			}
-			log.Printf("  ↦ PDR %d\n", pdrid)
+			pdicontent, err := pdr.PDI()
+			if err != nil {
+				continue
+			}
+			pdi := ie.NewPDI(pdicontent...)
+			sourceInterface, err := pdi.SourceInterface()
+			sourceInterfaceLabel := "Not defined"
+			if err == nil {
+				switch sourceInterface {
+				case ie.SrcInterfaceAccess:
+					sourceInterfaceLabel = "Access"
+				case ie.SrcInterfaceCore:
+					sourceInterfaceLabel = "Core"
+				case ie.SrcInterfaceSGiLANN6LAN:
+					sourceInterfaceLabel = "SGi-LAN/N6-LAN"
+				case ie.SrcInterfaceCPFunction:
+					sourceInterfaceLabel = "CP Function"
+				case ie.SrcInterface5GVNInternal:
+					sourceInterfaceLabel = "5G VN Internal"
+				}
+			}
+
+			log.Printf("  ↦ PDR %d: Source interface (%s)\n", pdrid, sourceInterfaceLabel)
 			log.Printf("    ↪ FAR %d\n", farid)
 		}
 		log.Printf("\n")

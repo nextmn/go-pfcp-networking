@@ -181,6 +181,7 @@ func (s *PFCPSession) updatePDRsUnsafe(pdrs pfcprule.PDRMap) {
 			// PDR should be only once in sorted list
 			s.sortedPDR = append(s.sortedPDR, pdr)
 		}
+		log.Printf("Updating/Creating PDR %d\n", id)
 		s.pdr[id] = pdr
 	}
 	sort.Sort(s.sortedPDR)
@@ -194,6 +195,7 @@ func (s *PFCPSession) updateFARsUnsafe(fars pfcprule.FARMap) {
 		return
 	}
 	for id, far := range fars {
+		log.Printf("Updating/Creating FAR %d\n", id)
 		s.far[id] = far
 	}
 }

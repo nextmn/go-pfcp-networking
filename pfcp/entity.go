@@ -31,7 +31,7 @@ type PFCPEntity struct {
 	// (can be changed with some requests)
 	// UP function receives them from CP functions
 	// CP function send them to UP functions
-	sessionsMap SessionsMap
+	sessionsMap api.SessionsMapInterface
 	kind        string // "CP" or "UP"
 }
 

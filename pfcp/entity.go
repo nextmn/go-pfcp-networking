@@ -241,7 +241,7 @@ func (e *PFCPEntity) PrintPFCPRules() {
 		defer session.RUnlock()
 		for _, pdrid := range session.GetSortedPDRIDs() {
 			pdr, err := session.GetPDR(pdrid)
-			if err == nil {
+			if err != nil {
 				log.Println(err)
 				continue
 			}

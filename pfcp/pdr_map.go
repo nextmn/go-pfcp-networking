@@ -158,6 +158,8 @@ func (m *PDRMap) SimulateAdd(pdr api.PDRInterface) error {
 }
 
 func (m *PDRMap) Update(pdr api.PDRInterface) error {
+	// XXX: instead of replacing old PDR with new one,
+	// only present fields should be replaced
 	id, err := pdr.ID()
 	if err != nil {
 		return err
@@ -213,7 +215,7 @@ func (m *PDRMap) SimulateRemove(key api.PDRID) error {
 	return nil
 }
 
-func NewPDRMap(pdrs []*ie.IE) (pdr *PDRMap, err error, cause uint8, offendingIE uint16) {
+func NewPDRMap(pdrs []*ie.IE) (pdrmap *PDRMap, err error, cause uint8, offendingIE uint16) {
 	p := PDRMap{
 		pdrmap:    make(pdrmapInternal),
 		mu:        sync.RWMutex{},

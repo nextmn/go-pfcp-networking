@@ -215,18 +215,22 @@ func (e *PFCPEntity) PrintPFCPRules() {
 	for _, session := range e.GetPFCPSessions() {
 		localIPAddress, err := session.LocalIPAddress()
 		if err != nil {
+			log.Println(err)
 			continue
 		}
 		localSEID, err := session.LocalSEID()
 		if err != nil {
+			log.Println(err)
 			continue
 		}
 		remoteIPAddress, err := session.RemoteIPAddress()
 		if err != nil {
+			log.Println(err)
 			continue
 		}
 		remoteSEID, err := session.RemoteSEID()
 		if err != nil {
+			log.Println(err)
 			continue
 		}
 
@@ -238,22 +242,27 @@ func (e *PFCPEntity) PrintPFCPRules() {
 		for _, pdrid := range session.GetSortedPDRIDs() {
 			pdr, err := session.GetPDR(pdrid)
 			if err == nil {
+				log.Println(err)
 				continue
 			}
 			precedence, err := pdr.Precedence()
 			if err != nil {
+				log.Println(err)
 				continue
 			}
 			farid, err := pdr.FARID()
 			if err != nil {
+				log.Println(err)
 				continue
 			}
 			pdicontent, err := pdr.PDI()
 			if err != nil {
+				log.Println(err)
 				continue
 			}
 			far, err := session.GetFAR(farid)
 			if err != nil {
+				log.Println(err)
 				continue
 			}
 			pdi := ie.NewPDI(pdicontent...)

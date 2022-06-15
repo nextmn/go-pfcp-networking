@@ -9,11 +9,9 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sort"
 	"sync"
 
 	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
-	pfcprule "github.com/louisroyer/go-pfcp-networking/pfcprules"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -30,20 +28,26 @@ type PFCPSession struct {
 	localFseid  *ie.IE // local F-SEID
 	remoteFseid *ie.IE // remote F-SEID, on Control Plane function this is allocated at Setup() time
 	// PDR Map allow to retrieve a specific PDR by its ID
-	pdr pfcprule.PDRMap
-	// sortedPDR is used to perform PDR finding using PDI Matching
-	sortedPDR pfcprule.PDRs
+	pdr api.PDRMapInterface
 	// FAR Map allow to retrieve a specific FAR by its ID
-	far pfcprule.FARMap
+	far api.FARMapInterface
 	// allows to perform atomic operations
-	// This RWMutex applies on sortedPDR, pdr, and far
+	// This RWMutex applies on pdr, and far
 	atomicMu sync.RWMutex
+}
+
+func (s *PFCPSession) RLock() {
+	s.atomicMu.RLock()
+}
+
+func (s *PFCPSession) RUnlock() {
+	s.atomicMu.RUnlock()
 }
 
 // Create an EstablishedPFCPSession
 // Use this function when a PFCP Session Establishment Request is received (UP case),
 // or when the Entity want to send a PFCP Session Establishment Request (CP case).
-func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid, rfseid *ie.IE, pdrs pfcprule.PDRMap, fars pfcprule.FARMap) (api.PFCPSessionInterface, error) {
+func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid, rfseid *ie.IE, pdrs api.PDRMapInterface, fars api.FARMapInterface) (api.PFCPSessionInterface, error) {
 	s := PFCPSession{
 		isEstablished: false,
 		association:   association,
@@ -51,7 +55,6 @@ func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid, 
 		remoteFseid:   nil, // FSEID ie send by remote peer
 		pdr:           pdrs,
 		far:           fars,
-		sortedPDR:     make(pfcprule.PDRs, 0),
 		atomicMu:      sync.RWMutex{},
 	}
 	if fseid != nil {
@@ -68,11 +71,6 @@ func newEstablishedPFCPSession(association api.PFCPAssociationInterface, fseid, 
 			return nil, err
 		}
 	}
-	// sort PDRs
-	for _, p := range pdrs {
-		s.sortedPDR = append(s.sortedPDR, p)
-	}
-	sort.Sort(s.sortedPDR)
 	if err := s.Setup(); err != nil {
 		return nil, err
 	}
@@ -149,106 +147,85 @@ func (s *PFCPSession) RemoteIPAddress() (net.IP, error) {
 	}
 }
 
-// Returns PDRs sorted by Precedence
+// Returns IDs of PDRs sorted by Precedence
 // For PDI checking, the checking order is:
 // look first at the first item of the array,
 // look last at the last item of the array.
-func (s *PFCPSession) GetPDRs() pfcprule.PDRs {
-	s.atomicMu.RLock()
-	defer s.atomicMu.RUnlock()
-	return s.sortedPDR
+func (s *PFCPSession) GetSortedPDRIDs() []api.PDRID {
+	// lock is not necessary, as it is to the caller to RLock and RUnlock
+	return s.pdr.GetSortedPDRIDs()
+}
+
+// Get PDR associated with this PDRID
+func (s *PFCPSession) GetPDR(pdrid api.PDRID) (api.PDRInterface, error) {
+	// lock is not necessary, as it is to the caller to RLock and RUnlock
+	return s.pdr.Get(pdrid)
 }
 
 // Get FAR associated with this FARID
-func (s *PFCPSession) GetFAR(farid pfcprule.FARID) (*pfcprule.FAR, error) {
-	s.atomicMu.RLock()
-	defer s.atomicMu.RUnlock()
-	if far, ok := s.far[farid]; ok {
-		return far, nil
-	}
-	return nil, fmt.Errorf("No FAR with id", farid)
-}
-
-// Update PDRs of the session
-// This is an internal function, not thread safe
-func (s *PFCPSession) updatePDRsUnsafe(pdrs pfcprule.PDRMap) {
-	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
-	if pdrs == nil {
-		return
-	}
-	pdrtmp := s.pdr
-	for id, pdr := range pdrs {
-		if _, exists := pdrtmp[id]; !exists {
-			// PDR should be only once in sorted list
-			s.sortedPDR = append(s.sortedPDR, pdr)
-		}
-		log.Printf("Updating/Creating PDR %d\n", id)
-		pdrtmp[id] = pdr
-	}
-	s.pdr = pdrtmp
-	sort.Sort(s.sortedPDR)
-}
-
-// Update FARs to the session
-// This is an internal function, not thread safe
-func (s *PFCPSession) updateFARsUnsafe(fars pfcprule.FARMap) {
-	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
-	if fars == nil {
-		return
-	}
-	fartmp := s.far
-	for id, far := range fars {
-		log.Printf("Updating/Creating FAR %d\n", id)
-		fartmp[id] = far
-	}
-	s.far = fartmp
-}
-
-// Returns nil if each PDR from the PDRMap can be created, i.e. if PDRIDs are not already used
-// This is an internal function, not thread safe
-func (s *PFCPSession) checkPDRsNotExistUnsafe(pdrs pfcprule.PDRMap) error {
-	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
-	if pdrs == nil {
-		return nil
-	}
-	for id, _ := range pdrs {
-		if _, exists := s.pdr[id]; exists {
-			return fmt.Errorf("PDR with ID %d already exists", id)
-		}
-	}
-	return nil
-}
-
-// Returns nil if each FAR from the FARMap can be created, i.e. if FARIDs are not already used
-// This is an internal function, not thread safe
-func (s *PFCPSession) checkFARsNotExistUnsafe(fars pfcprule.FARMap) error {
-	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
-	if fars == nil {
-		return nil
-	}
-	for id, _ := range fars {
-		if _, exists := s.far[id]; exists {
-			return fmt.Errorf("FAR with ID %d already exists", id)
-		}
-	}
-	return nil
+func (s *PFCPSession) GetFAR(farid api.FARID) (api.FARInterface, error) {
+	// lock is not necessary, as it is to the caller to RLock and RUnlock
+	return s.far.Get(farid)
 }
 
 // Add/Update PDRs and FARs to the session
-func (s *PFCPSession) AddUpdatePDRsFARs(createpdrs pfcprule.PDRMap, createfars pfcprule.FARMap, updatepdrs pfcprule.PDRMap, updatefars pfcprule.FARMap) error {
+func (s *PFCPSession) AddUpdatePDRsFARs(createpdrs api.PDRMapInterface, createfars api.FARMapInterface, updatepdrs api.PDRMapInterface, updatefars api.FARMapInterface) error {
 	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
 	s.atomicMu.Lock()
 	defer s.atomicMu.Unlock()
-	if err := s.checkPDRsNotExistUnsafe(createpdrs); err != nil {
+	// Simulate to check consistency
+	// deletions
+
+	// updates
+	if err := updatepdrs.Foreach(func(pdr api.PDRInterface) error {
+		return s.pdr.SimulateUpdate(pdr)
+	}); err != nil {
 		return err
 	}
-	if err := s.checkFARsNotExistUnsafe(createfars); err != nil {
+	if err := updatefars.Foreach(func(far api.FARInterface) error {
+		return s.far.SimulateUpdate(far)
+	}); err != nil {
 		return err
 	}
-	s.updatePDRsUnsafe(createpdrs)
-	s.updateFARsUnsafe(createfars)
-	s.updatePDRsUnsafe(updatepdrs)
-	s.updateFARsUnsafe(updatefars)
+
+	// creations
+	if err := createpdrs.Foreach(func(pdr api.PDRInterface) error {
+		return s.pdr.SimulateAdd(pdr)
+	}); err != nil {
+		return err
+	}
+	if err := createfars.Foreach(func(far api.FARInterface) error {
+		return s.far.SimulateAdd(far)
+	}); err != nil {
+		return err
+	}
+	// Performing for real
+	// deletions
+
+	// updates
+	if err := updatepdrs.Foreach(func(pdr api.PDRInterface) error {
+		return s.pdr.Update(pdr)
+	}); err != nil {
+		return err
+	}
+	if err := updatefars.Foreach(func(far api.FARInterface) error {
+		return s.far.Update(far)
+	}); err != nil {
+		return err
+	}
+
+	// creations
+	if err := createpdrs.Foreach(func(pdr api.PDRInterface) error {
+		return s.pdr.Add(pdr)
+	}); err != nil {
+		return err
+	}
+	if err := createfars.Foreach(func(far api.FARInterface) error {
+		return s.far.Add(far)
+	}); err != nil {
+		return err
+	}
+
 	return nil
 	// TODO: if isControlPlane() -> send the Session Modification Request
 }
@@ -280,12 +257,14 @@ func (s *PFCPSession) Setup() error {
 		ies := make([]*ie.IE, 0)
 		ies = append(ies, s.association.LocalEntity().NodeID())
 		ies = append(ies, s.localFseid)
-		for _, pdr := range pfcprule.NewCreatePDRs(s.pdr) {
-			ies = append(ies, pdr)
-		}
-		for _, far := range pfcprule.NewCreateFARs(s.far) {
-			ies = append(ies, far)
-		}
+		s.pdr.Foreach(func(pdr api.PDRInterface) error {
+			ies = append(ies, pdr.NewCreatePDR())
+			return nil
+		})
+		s.far.Foreach(func(far api.FARInterface) error {
+			ies = append(ies, far.NewCreateFAR())
+			return nil
+		})
 
 		msg := message.NewSessionEstablishmentRequest(0, 0, 0, 0, 0, ies...)
 		resp, err := s.association.Send(msg)

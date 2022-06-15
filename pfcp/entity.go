@@ -48,10 +48,6 @@ func (e *PFCPEntity) GetPFCPSession(localIP string, seid api.SEID) (api.PFCPSess
 	return e.sessionsMap.GetPFCPSession(localIP, seid)
 }
 
-func (e *PFCPEntity) UpdatePFCPSession(session api.PFCPSessionInterface) error {
-	return e.sessionsMap.Update(session)
-}
-
 func (e *PFCPEntity) SendTo(msg []byte, dst net.Addr) error {
 	e.connMu.Lock()
 	defer e.connMu.Unlock()
@@ -151,11 +147,6 @@ func (e *PFCPEntity) GetPFCPAssociation(nid string) (association api.PFCPAssocia
 	return e.associationsMap.Get(nid)
 }
 
-// Update an Association
-func (e *PFCPEntity) UpdatePFCPAssociation(association api.PFCPAssociationInterface) error {
-	return e.associationsMap.Update(association)
-}
-
 func (e *PFCPEntity) NewEstablishedPFCPAssociation(nodeID *ie.IE) (association api.PFCPAssociationInterface, err error) {
 	peer, err := newPFCPPeerUP(e, nodeID)
 	if err != nil {
@@ -242,9 +233,11 @@ func (e *PFCPEntity) PrintPFCPRules() {
 		log.Printf("PFCP Session: Local F-SEID [%s (%d)], Remote F-SEID [%s (%d)]\n",
 			localIPAddress.String(), localSEID,
 			remoteIPAddress.String(), remoteSEID)
-		for _, pdr := range session.GetPDRs() {
-			pdrid, err := pdr.ID()
-			if err != nil {
+		session.RLock()
+		defer session.RUnlock()
+		for _, pdrid := range session.GetSortedPDRIDs() {
+			pdr, err := session.GetPDR(pdrid)
+			if err == nil {
 				continue
 			}
 			precedence, err := pdr.Precedence()

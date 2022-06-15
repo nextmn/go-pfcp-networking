@@ -5,8 +5,18 @@
 
 package api
 
-type SessionsMapInterface interface {
-	Add(session PFCPSessionInterface) error
-	GetPFCPSessions() []PFCPSessionInterface
-	GetPFCPSession(localIP string, seid SEID) (PFCPSessionInterface, error)
+import "github.com/wmnsk/go-pfcp/ie"
+
+type PDRID = uint16
+type PDRInterface interface {
+	ID() (PDRID, error)
+
+	PDI() ([]*ie.IE, error)
+	Precedence() (uint32, error)
+
+	FARID() (FARID, error)
+
+	OuterHeaderRemoval() *ie.IE
+
+	NewCreatePDR() *ie.IE
 }

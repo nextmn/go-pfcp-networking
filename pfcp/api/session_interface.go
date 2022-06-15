@@ -8,7 +8,6 @@ package api
 import (
 	"net"
 
-	pfcprule "github.com/louisroyer/go-pfcp-networking/pfcprules"
 	"github.com/wmnsk/go-pfcp/ie"
 )
 
@@ -19,9 +18,15 @@ type PFCPSessionInterface interface {
 	RemoteFSEID() *ie.IE
 	RemoteSEID() (SEID, error)
 	RemoteIPAddress() (net.IP, error)
-	GetPDRs() pfcprule.PDRs
-	GetFAR(farid uint32) (*pfcprule.FAR, error)
-	AddUpdatePDRsFARs(createpdrs pfcprule.PDRMap, createfars pfcprule.FARMap, updatepdr pfcprule.PDRMap, updatefars pfcprule.FARMap) error
+	GetSortedPDRIDs() []PDRID
+	GetPDR(pdrid PDRID) (PDRInterface, error)
+	GetFAR(farid FARID) (FARInterface, error)
+	AddUpdatePDRsFARs(createpdrs PDRMapInterface, createfars FARMapInterface, updatepdr PDRMapInterface, updatefars FARMapInterface) error
 	//	SetRemoteFSEID(FSEID *ie.IE)
 	Setup() error
+
+	// Must be called before getting PDRIDs, PDR, and FARs in one operation
+	// to ensure FARs are up-to-date with PDRs
+	RLock()
+	RUnlock()
 }

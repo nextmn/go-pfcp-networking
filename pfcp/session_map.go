@@ -12,6 +12,7 @@ import (
 	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
 )
 
+//XXX Delete old sessions instead of just creating new ones
 type sessionsMapSEID = map[api.SEID]api.PFCPSessionInterface
 type sessionsMapFSEID = map[string]sessionsMapSEID
 type SessionsMap struct {
@@ -76,27 +77,4 @@ func (sm *SessionsMap) GetPFCPSession(localIP string, seid api.SEID) (api.PFCPSe
 	} else {
 		return nil, fmt.Errorf("Session not found: wrong IP")
 	}
-}
-
-// Update Sesion
-func (sm *SessionsMap) Update(session api.PFCPSessionInterface) error {
-	sm.muSessions.Lock()
-	defer sm.muSessions.Unlock()
-	// Get splitted F-SEID
-	localIPAddr, err := session.LocalIPAddress() // XXX: handle case where both ip6 and ip4 are set
-	if err != nil {
-		return err
-	}
-	localIP := localIPAddr.String()
-	localSEID, err := session.LocalSEID()
-	if err != nil {
-		return err
-	}
-	// Create submap if first session with this localIP
-	if _, exists := sm.sessions[localIP]; !exists {
-		sm.sessions[localIP] = make(sessionsMapSEID, 0)
-	}
-	// Add session
-	sm.sessions[localIP][localSEID] = session
-	return nil
 }

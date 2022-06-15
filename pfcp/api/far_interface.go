@@ -5,8 +5,13 @@
 
 package api
 
-type SessionsMapInterface interface {
-	Add(session PFCPSessionInterface) error
-	GetPFCPSessions() []PFCPSessionInterface
-	GetPFCPSession(localIP string, seid SEID) (PFCPSessionInterface, error)
+import "github.com/wmnsk/go-pfcp/ie"
+
+type FARID = uint32
+
+type FARInterface interface {
+	ID() (FARID, error)
+	ApplyAction() *ie.IE
+	ForwardingParameters() *ie.IE
+	NewCreateFAR() *ie.IE
 }

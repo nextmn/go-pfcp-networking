@@ -6,7 +6,6 @@
 package api
 
 import (
-	pfcprule "github.com/louisroyer/go-pfcp-networking/pfcprules"
 	"github.com/wmnsk/go-pfcp/ie"
 )
 
@@ -15,5 +14,5 @@ type PFCPAssociationInterface interface {
 	PFCPPeerInterface
 	SetupInitiatedByCP() error
 	GetNextSEID() SEID
-	CreateSession(remoteFseid *ie.IE, pdrs pfcprule.PDRs, fars pfcprule.FARs) (session PFCPSessionInterface, err error)
+	CreateSession(remoteFseid *ie.IE, pdrs PDRMapInterface, fars FARMapInterface) (session PFCPSessionInterface, err error)
 }

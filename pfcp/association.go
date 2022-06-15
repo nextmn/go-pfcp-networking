@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
-	pfcprule "github.com/louisroyer/go-pfcp-networking/pfcprules"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -159,48 +158,15 @@ func (association *PFCPAssociation) getFSEID(seid api.SEID) (*ie.IE, error) {
 }
 
 // remoteFseid can be nil if caller is at CP function side
-func (association *PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs pfcprule.PDRs, fars pfcprule.FARs) (session api.PFCPSessionInterface, err error) {
+func (association *PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs api.PDRMapInterface, fars api.FARMapInterface) (session api.PFCPSessionInterface, err error) {
 	// Generation of the F-SEID
 	localSEID := association.GetNextSEID()
 	localFseid, err := association.getFSEID(localSEID)
 	if err != nil {
 		return nil, err
 	}
-	// Checking PDRs, and FARs
-	tmpPDR := make(pfcprule.PDRMap)
-	if pdrs == nil {
-		return nil, fmt.Errorf("[SEID: %d] No PDR in session creation request", localSEID)
-	}
-	log.Printf("[SEID: %d] Adding %d PDRs to session\n", localSEID, len(pdrs))
-	for _, pdr := range pdrs {
-		if pdr == nil {
-			log.Printf("[SEID: %d] A PDR is nil", localSEID)
-			continue
-		}
-		id, err := pdr.ID()
-		if err != nil {
-			return nil, err
-		}
-		tmpPDR[id] = pdr
-	}
-	tmpFAR := make(pfcprule.FARMap)
-	if fars == nil {
-		return nil, fmt.Errorf("[SEID: %d] No FAR in session", localSEID)
-	}
-	log.Printf("[SEID: %d] Adding %d FARs to session\n", localSEID, len(fars))
-	for _, far := range fars {
-		if far == nil {
-			log.Printf("[SEID: %d] A FAR is nil\n", localSEID)
-			continue
-		}
-		id, err := far.ID()
-		if err != nil {
-			return nil, err
-		}
-		tmpFAR[id] = far
-	}
 	// Establishment of a PFCP Session if CP / Creation if UP
-	s, err := newEstablishedPFCPSession(association, localFseid, remoteFseid, tmpPDR, tmpFAR)
+	s, err := newEstablishedPFCPSession(association, localFseid, remoteFseid, pdrs, fars)
 	if err != nil {
 		return nil, err
 	}

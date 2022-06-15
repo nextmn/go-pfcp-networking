@@ -162,6 +162,10 @@ func (s *PFCPSession) GetPDR(pdrid api.PDRID) (api.PDRInterface, error) {
 	return s.pdr.Get(pdrid)
 }
 
+func (s *PFCPSession) ForeachUnsortedPDR(f func(pdr api.PDRInterface) error) error {
+	return s.pdr.Foreach(f)
+}
+
 // Get FAR associated with this FARID
 func (s *PFCPSession) GetFAR(farid api.FARID) (api.FARInterface, error) {
 	// lock is not necessary, as it is to the caller to RLock and RUnlock

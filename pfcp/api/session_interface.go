@@ -24,6 +24,7 @@ type PFCPSessionInterface interface {
 	AddUpdatePDRsFARs(createpdrs PDRMapInterface, createfars FARMapInterface, updatepdr PDRMapInterface, updatefars FARMapInterface) error
 	//	SetRemoteFSEID(FSEID *ie.IE)
 	Setup() error
+	ForeachUnsortedPDR(f func(pdr PDRInterface) error) error
 
 	// Must be called before getting PDRIDs, PDR, and FARs in one operation
 	// to ensure FARs are up-to-date with PDRs

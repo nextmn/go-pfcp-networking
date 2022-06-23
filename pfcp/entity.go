@@ -317,7 +317,7 @@ func (e *PFCPEntity) PrintPFCPRules() {
 
 			SDFFilterLabel := ""
 			if SDFFilter, err := pdi.SDFFilter(); err == nil {
-				SDFFilterLabel = fmt.Sprintf("SDF Filter: %s", SDFFilter.FlowLabel)
+				SDFFilterLabel = fmt.Sprintf("SDF Filter: %s", SDFFilter.FlowDescription)
 			}
 
 			ApplyActionLabel := "No"

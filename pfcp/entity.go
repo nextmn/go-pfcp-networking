@@ -302,12 +302,10 @@ func (e *PFCPEntity) PrintPFCPRules() {
 				case fteidIE.HasIPv6():
 					fteidLabel = fmt.Sprintf("[%s (%d)]", fteid.IPv6Address, fteid.TEID)
 				}
-
 			}
 
 			OuterHeaderRemovalLabel := "No"
-			ohrIe := pdr.OuterHeaderRemoval()
-			if ohrIe != nil {
+			if ohrIe := pdr.OuterHeaderRemoval(); ohrIe != nil {
 				if ohr, err := ohrIe.OuterHeaderRemovalDescription(); err == nil {
 					if ohr == 0 || ohr == 1 || ohr == 6 {
 						OuterHeaderRemovalLabel = "GTP"
@@ -315,6 +313,11 @@ func (e *PFCPEntity) PrintPFCPRules() {
 						OuterHeaderRemovalLabel = "Yes (but no GTP)"
 					}
 				}
+			}
+
+			SDFFilterLabel := ""
+			if SDFFilter, err := pdi.SDFFilter(); err == nil {
+				SDFFilterLabel = fmt.Sprintf("SDF Filter: %s", SDFFilter.FlowLabel)
 			}
 
 			ApplyActionLabel := "No"
@@ -363,6 +366,9 @@ func (e *PFCPEntity) PrintPFCPRules() {
 			}
 
 			log.Printf("  ↦ [PDR %d] (%d) Source interface: %s, OHR: %s, F-TEID: %s, UE IP: %s\n", pdrid, precedence, sourceInterfaceLabel, OuterHeaderRemovalLabel, fteidLabel, ueIpAddressLabel)
+			if SDFFilterLabel != "" {
+				log.Printf("    ↪ %s\n", SDFFilterLabel)
+			}
 			log.Printf("    ↪ [FAR %d] OHC: %s, ApplyAction: %s, Destination interface: %s\n", farid, OuterHeaderCreationLabel, ApplyActionLabel, DestinationInterfaceLabel)
 		}
 		log.Printf("\n")

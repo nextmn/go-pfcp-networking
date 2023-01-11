@@ -132,7 +132,7 @@ func (peer *PFCPPeer) loopUnwrapped() {
 }
 
 func (peer *PFCPPeer) IsRunning() bool {
-	return peer.stop
+	return !peer.stop
 }
 
 // Close connection of PFCPPeer

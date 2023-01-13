@@ -155,9 +155,10 @@ func NewFARMap(fars []*ie.IE) (farmap *FARMap, err error, cause uint8, offending
 		}
 
 		fp, err := far.ForwardingParameters()
+
 		// This IE shall be present when the Apply Action requests
 		// the packets to be forwarded. It may be present otherwise.
-		if err != nil {
+		if err != nil && far.HasFORW() {
 			// XXX: Updating FAR should not be done like that
 			fp, err = far.UpdateForwardingParameters()
 
@@ -172,8 +173,11 @@ func NewFARMap(fars []*ie.IE) (farmap *FARMap, err error, cause uint8, offending
 				//			}
 			}
 		}
-
-		err = f.Add(NewFAR(ie.NewFARID(id), ie.NewApplyAction(aa), ie.NewForwardingParameters(fp...)))
+		if fp == nil {
+			err = f.Add(NewFAR(ie.NewFARID(id), ie.NewApplyAction(aa), nil))
+		} else {
+			err = f.Add(NewFAR(ie.NewFARID(id), ie.NewApplyAction(aa), ie.NewForwardingParameters(fp...)))
+		}
 		if err != nil {
 			return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreateFAR
 		}

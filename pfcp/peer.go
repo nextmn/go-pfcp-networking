@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
-	"github.com/louisroyer/go-pfcp-networking/pfcputil"
+	"github.com/nextmn/go-pfcp-networking/pfcp/api"
+	"github.com/nextmn/go-pfcp-networking/pfcputil"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )

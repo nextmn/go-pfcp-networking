@@ -31,8 +31,6 @@ func handleAssociationSetupRequest(msg ReceivedMessage) error {
 	switch {
 	case msg.Message == nil:
 		return fmt.Errorf("msg is nil")
-	case msg.Sequence == nil:
-		return fmt.Errorf("msg.Sequence is nil")
 	case msg.Entity == nil:
 		return fmt.Errorf("entity is nil")
 	case msg.Entity.NodeID() == nil:

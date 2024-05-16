@@ -18,12 +18,12 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-type handler = func(receivedMessage ReceivedMessage) error
+type PFCPMessageHandler = func(receivedMessage ReceivedMessage) error
 
 type PFCPEntity struct {
 	nodeID            *ie.IE
 	recoveryTimeStamp *ie.IE
-	handlers          map[pfcputil.MessageType]handler
+	handlers          map[pfcputil.MessageType]PFCPMessageHandler
 	conn              *net.UDPConn
 	connMu            sync.Mutex
 	associationsMap   AssociationsMap
@@ -64,8 +64,8 @@ func (e *PFCPEntity) RecoveryTimeStamp() *ie.IE {
 	return e.recoveryTimeStamp
 }
 
-func newDefaultPFCPEntityHandlers() map[pfcputil.MessageType]handler {
-	m := make(map[pfcputil.MessageType]handler)
+func newDefaultPFCPEntityHandlers() map[pfcputil.MessageType]PFCPMessageHandler {
+	m := make(map[pfcputil.MessageType]PFCPMessageHandler)
 	m[message.MsgTypeHeartbeatRequest] = handleHeartbeatRequest
 	return m
 }
@@ -103,14 +103,14 @@ func (e *PFCPEntity) listen() error {
 	return nil
 }
 
-func (e *PFCPEntity) GetHandler(t pfcputil.MessageType) (h handler, err error) {
+func (e *PFCPEntity) GetHandler(t pfcputil.MessageType) (h PFCPMessageHandler, err error) {
 	if f, exists := e.handlers[t]; exists {
 		return f, nil
 	}
 	return nil, fmt.Errorf("Received unexpected PFCP message type")
 }
 
-func (e *PFCPEntity) AddHandler(t pfcputil.MessageType, h handler) error {
+func (e *PFCPEntity) AddHandler(t pfcputil.MessageType, h PFCPMessageHandler) error {
 	if e.RecoveryTimeStamp() != nil {
 		return fmt.Errorf("Cannot add handler to already started PFCP Entity")
 	}
@@ -121,7 +121,7 @@ func (e *PFCPEntity) AddHandler(t pfcputil.MessageType, h handler) error {
 	return nil
 }
 
-func (e *PFCPEntity) AddHandlers(funcs map[pfcputil.MessageType]handler) error {
+func (e *PFCPEntity) AddHandlers(funcs map[pfcputil.MessageType]PFCPMessageHandler) error {
 	if e.RecoveryTimeStamp() != nil {
 		return fmt.Errorf("Cannot add handler to already started PFCP Entity")
 	}
@@ -152,7 +152,7 @@ func (e *PFCPEntity) NewEstablishedPFCPAssociation(nodeID *ie.IE) (association a
 	if err != nil {
 		return nil, err
 	}
-	if e.RecoveryTimeStamp == nil {
+	if e.RecoveryTimeStamp() == nil {
 		return nil, fmt.Errorf("Local PFCP entity is not started")
 	}
 	nid, err := nodeID.NodeID()

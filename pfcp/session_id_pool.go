@@ -9,7 +9,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
+	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 )
 
 // SessionIDPool is a generator of session IDs

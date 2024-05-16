@@ -1,4 +1,4 @@
-module github.com/louisroyer/go-pfcp-networking
+module github.com/nextmn/go-pfcp-networking
 
 go 1.21
 

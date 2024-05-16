@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
+	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 )
 
 type associationsMap = map[string]api.PFCPAssociationInterface

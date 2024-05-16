@@ -6,7 +6,7 @@
 package pfcp_networking
 
 import (
-	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
+	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 	"github.com/wmnsk/go-pfcp/ie"
 )
 

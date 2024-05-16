@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/louisroyer/go-pfcp-networking/pfcp/api"
+	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 )
 
-//XXX Delete old sessions instead of just creating new ones
+// XXX Delete old sessions instead of just creating new ones
 type sessionsMapSEID = map[api.SEID]api.PFCPSessionInterface
 type sessionsMapFSEID = map[string]sessionsMapSEID
 type SessionsMap struct {

@@ -4,3 +4,5 @@ github.com/pascaldekloe/goe v0.1.1 h1:Ah6WQ56rZONR3RW3qWa2NCZ6JAVvSpUcoLBaOmYFt9
 github.com/pascaldekloe/goe v0.1.1/go.mod h1:KSyfaxQOh0HZPjDP1FL/kFtbqYqrALJTaMafFUIccqU=
 github.com/wmnsk/go-pfcp v0.0.23 h1:BhuKbFKHnoG/xWlGemAmh8kHG7iRxc6tuCo8E9qHkTI=
 github.com/wmnsk/go-pfcp v0.0.23/go.mod h1:Q9B171qmZEI4k5n6trskNCz8JqW0J+RjpuqDE6ssF7o=
+github.com/wmnsk/go-pfcp v0.0.24 h1:sv4F3U/IphsPUMXMkTJW877CRvXZ1sF5onWHGBvxx/A=
+github.com/wmnsk/go-pfcp v0.0.24/go.mod h1:8EUVvOzlz25wkUs9D8STNAs5zGyIo5xEUpHQOUZ/iSg=

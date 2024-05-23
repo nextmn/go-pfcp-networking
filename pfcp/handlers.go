@@ -16,13 +16,15 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-func handleHeartbeatRequest(msg ReceivedMessage) error {
+type PFCPMessageHandler = func(receivedMessage ReceivedMessage) error
+
+func DefaultHeartbeatRequestHandler(msg ReceivedMessage) error {
 	log.Println("Received Heartbeat Request")
 	res := message.NewHeartbeatResponse(msg.Sequence(), msg.Entity.RecoveryTimeStamp())
 	return msg.ReplyTo(res)
 }
 
-func handleAssociationSetupRequest(msg ReceivedMessage) error {
+func DefaultAssociationSetupRequestHandler(msg ReceivedMessage) error {
 	log.Println("Received Association Setup Request")
 	m, ok := msg.Message.(*message.AssociationSetupRequest)
 	if !ok {
@@ -50,7 +52,7 @@ func handleAssociationSetupRequest(msg ReceivedMessage) error {
 	return msg.ReplyTo(res)
 }
 
-func handleSessionEstablishmentRequest(msg ReceivedMessage) error {
+func DefaultSessionEstablishmentRequestHandler(msg ReceivedMessage) error {
 	log.Println("Received Session Establishment Request")
 	m, ok := msg.Message.(*message.SessionEstablishmentRequest)
 	if !ok {
@@ -152,7 +154,7 @@ func handleSessionEstablishmentRequest(msg ReceivedMessage) error {
 	return msg.ReplyTo(res)
 }
 
-func handleSessionModificationRequest(msg ReceivedMessage) error {
+func DefaultSessionModificationRequestHandler(msg ReceivedMessage) error {
 	log.Println("Received Session Modification Request")
 	m, ok := msg.Message.(*message.SessionModificationRequest)
 	if !ok {

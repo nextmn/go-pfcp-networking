@@ -25,13 +25,13 @@ func NewPFCPEntityUP(nodeID string) *PFCPEntityUP {
 }
 
 func (e *PFCPEntityUP) initDefaultHandlers() error {
-	if err := e.AddHandler(message.MsgTypeAssociationSetupRequest, handleAssociationSetupRequest); err != nil {
+	if err := e.AddHandler(message.MsgTypeAssociationSetupRequest, DefaultAssociationSetupRequestHandler); err != nil {
 		return err
 	}
-	if err := e.AddHandler(message.MsgTypeSessionEstablishmentRequest, handleSessionEstablishmentRequest); err != nil {
+	if err := e.AddHandler(message.MsgTypeSessionEstablishmentRequest, DefaultSessionEstablishmentRequestHandler); err != nil {
 		return err
 	}
-	if err := e.AddHandler(message.MsgTypeSessionModificationRequest, handleSessionModificationRequest); err != nil {
+	if err := e.AddHandler(message.MsgTypeSessionModificationRequest, DefaultSessionModificationRequestHandler); err != nil {
 		return err
 	}
 	return nil

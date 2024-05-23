@@ -18,8 +18,6 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-type PFCPMessageHandler = func(receivedMessage ReceivedMessage) error
-
 type PFCPEntity struct {
 	nodeID            *ie.IE
 	recoveryTimeStamp *ie.IE
@@ -66,7 +64,7 @@ func (e *PFCPEntity) RecoveryTimeStamp() *ie.IE {
 
 func newDefaultPFCPEntityHandlers() map[pfcputil.MessageType]PFCPMessageHandler {
 	m := make(map[pfcputil.MessageType]PFCPMessageHandler)
-	m[message.MsgTypeHeartbeatRequest] = handleHeartbeatRequest
+	m[message.MsgTypeHeartbeatRequest] = DefaultHeartbeatRequestHandler
 	return m
 }
 

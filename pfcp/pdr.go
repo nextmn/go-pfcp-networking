@@ -47,6 +47,18 @@ func (pdr *PDR) OuterHeaderRemoval() *ie.IE {
 	return pdr.outerHeaderRemoval
 }
 
+func (pdr *PDR) SourceInterface() (uint8, error) {
+	return pdr.pdi.SourceInterface()
+}
+
+func (pdr *PDR) FTEID() (*ie.FTEIDFields, error) {
+	return pdr.pdi.FTEID()
+}
+
+func (pdr *PDR) UEIPAddress() (*ie.UEIPAddressFields, error) {
+	return pdr.pdi.UEIPAddress()
+}
+
 func (pdr *PDR) NewCreatePDR() *ie.IE {
 	ies := make([]*ie.IE, 0)
 	ies = append(ies, pdr.id)

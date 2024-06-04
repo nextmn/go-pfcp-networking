@@ -18,5 +18,9 @@ type PDRInterface interface {
 
 	OuterHeaderRemoval() *ie.IE
 
+	SourceInterface() (uint8, error)
+	FTEID() (*ie.FTEIDFields, error)
+	UEIPAddress() (*ie.UEIPAddressFields, error)
+
 	NewCreatePDR() *ie.IE
 }

@@ -10,7 +10,7 @@
 ### UPF
 
 ```golang
-upNode := NewPFCPEntityUP(UPFADDR)
+upNode := NewPFCPEntityUP(UPF_NODE_ID, UPF_IP_ADDR) // node id can be an IP Address or a FQDN
 upNode.Start()
 // Access list of associations
 associations := upNode.GetPFCPAssociations()
@@ -21,7 +21,7 @@ sessions := upNode.GetPFCPSessions()
 ### SMF
 
 ```golang
-cpNode := NewPFCPEntityCP(SMFADDR)
+cpNode := NewPFCPEntityCP(SMF_NODE_ID, SMF_IP_ADDR) // node id can be an IP Address or a FQDN
 cpNode.Start()
 association, _ := cpNode.NewEstablishedPFCPAssociation(ie.NewNodeIDHeuristic(UPFADDR))
 session, _ := a.CreateSession(pdrs, fars)

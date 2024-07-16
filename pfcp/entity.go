@@ -20,6 +20,7 @@ import (
 
 type PFCPEntity struct {
 	nodeID            *ie.IE
+	listenAddr        string
 	recoveryTimeStamp *ie.IE
 	handlers          map[pfcputil.MessageType]PFCPMessageHandler
 	conn              *net.UDPConn
@@ -73,9 +74,10 @@ func newDefaultPFCPEntityHandlers() map[pfcputil.MessageType]PFCPMessageHandler 
 	return m
 }
 
-func NewPFCPEntity(nodeID string, kind string, options EntityOptions) PFCPEntity {
+func NewPFCPEntity(nodeID string, listenAddr string, kind string, options EntityOptions) PFCPEntity {
 	return PFCPEntity{
 		nodeID:            ie.NewNodeIDHeuristic(nodeID),
+		listenAddr:        listenAddr,
 		recoveryTimeStamp: nil,
 		handlers:          newDefaultPFCPEntityHandlers(),
 		conn:              nil,
@@ -89,11 +91,8 @@ func NewPFCPEntity(nodeID string, kind string, options EntityOptions) PFCPEntity
 
 func (e *PFCPEntity) listen() error {
 	e.recoveryTimeStamp = ie.NewRecoveryTimeStamp(time.Now())
-	// TODO: if NodeID is a FQDN, we can expose multiple ip addresses
-	ipAddr, err := e.NodeID().NodeID()
-	if err != nil {
-		return err
-	}
+	// TODO: listen on multiple ip addresses (ipv4 + ipv6)
+	ipAddr := e.listenAddr
 	udpAddr := pfcputil.CreateUDPAddr(ipAddr, pfcputil.PFCP_PORT)
 	laddr, err := net.ResolveUDPAddr("udp", udpAddr)
 	if err != nil {

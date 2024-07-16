@@ -15,12 +15,12 @@ type PFCPEntityUP struct {
 	PFCPEntity
 }
 
-func NewPFCPEntityUP(nodeID string) *PFCPEntityUP {
-	return NewPFCPEntityUPWithOptions(nodeID, EntityOptions{})
+func NewPFCPEntityUP(nodeID string, listenAddr string) *PFCPEntityUP {
+	return NewPFCPEntityUPWithOptions(nodeID, listenAddr, EntityOptions{})
 }
 
-func NewPFCPEntityUPWithOptions(nodeID string, options EntityOptions) *PFCPEntityUP {
-	e := PFCPEntityUP{PFCPEntity: NewPFCPEntity(nodeID, "UP", options)}
+func NewPFCPEntityUPWithOptions(nodeID string, listenAddr string, options EntityOptions) *PFCPEntityUP {
+	e := PFCPEntityUP{PFCPEntity: NewPFCPEntity(nodeID, listenAddr, "UP", options)}
 	err := e.initDefaultHandlers()
 	if err != nil {
 		log.Println(err)

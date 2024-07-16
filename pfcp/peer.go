@@ -211,7 +211,7 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 		return nil, fmt.Errorf("Error on write: %s\n", err)
 	}
 
-	for i := 0; i < pfcputil.MESSAGE_RETRANSMISSION_N1; i++ {
+	for i := 0; i < peer.LocalEntity().Options().MessageRetransmissionN1(); i++ {
 		select {
 		case r := <-ch:
 			msg, err := message.Parse(r)
@@ -222,7 +222,7 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 				return nil, fmt.Errorf("Unexpected incomming PFCP message type")
 			}
 			return msg, nil
-		case <-time.After(pfcputil.MESSAGE_RETRANSMISSION_T1):
+		case <-time.After(peer.LocalEntity().Options().MessageRetransmissionT1()):
 			// retry
 			_, err = peer.conn.WriteToUDP(b, peer.udpAddr)
 			if err != nil {

@@ -10,6 +10,9 @@ type PFCPEntityCP struct {
 }
 
 func NewPFCPEntityCP(nodeID string) *PFCPEntityCP {
-	e := PFCPEntityCP{PFCPEntity: NewPFCPEntity(nodeID, "CP")}
-	return &e
+	return NewPFCPEntityCPWithOptions(nodeID, EntityOptions{})
+}
+
+func NewPFCPEntityCPWithOptions(nodeID string, options EntityOptions) *PFCPEntityCP {
+	return &PFCPEntityCP{PFCPEntity: NewPFCPEntity(nodeID, "CP", options)}
 }

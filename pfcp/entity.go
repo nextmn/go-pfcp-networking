@@ -31,6 +31,11 @@ type PFCPEntity struct {
 	// CP function send them to UP functions
 	sessionsMap api.SessionsMapInterface
 	kind        string // "CP" or "UP"
+	options     EntityOptions
+}
+
+func (e *PFCPEntity) Options() api.EntityOptionsInterface {
+	return e.options
 }
 
 // Add an Established PFCP Session
@@ -68,7 +73,7 @@ func newDefaultPFCPEntityHandlers() map[pfcputil.MessageType]PFCPMessageHandler 
 	return m
 }
 
-func NewPFCPEntity(nodeID string, kind string) PFCPEntity {
+func NewPFCPEntity(nodeID string, kind string, options EntityOptions) PFCPEntity {
 	return PFCPEntity{
 		nodeID:            ie.NewNodeIDHeuristic(nodeID),
 		recoveryTimeStamp: nil,
@@ -78,6 +83,7 @@ func NewPFCPEntity(nodeID string, kind string) PFCPEntity {
 		associationsMap:   NewAssociationsMap(),
 		sessionsMap:       NewSessionsMap(),
 		kind:              kind,
+		options:           options,
 	}
 }
 

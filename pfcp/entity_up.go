@@ -8,6 +8,7 @@ package pfcp_networking
 import (
 	"log"
 
+	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 	"github.com/wmnsk/go-pfcp/message"
 )
 
@@ -19,7 +20,7 @@ func NewPFCPEntityUP(nodeID string, listenAddr string) *PFCPEntityUP {
 	return NewPFCPEntityUPWithOptions(nodeID, listenAddr, EntityOptions{})
 }
 
-func NewPFCPEntityUPWithOptions(nodeID string, listenAddr string, options EntityOptions) *PFCPEntityUP {
+func NewPFCPEntityUPWithOptions(nodeID string, listenAddr string, options api.EntityOptionsInterface) *PFCPEntityUP {
 	e := PFCPEntityUP{PFCPEntity: NewPFCPEntity(nodeID, listenAddr, "UP", options)}
 	err := e.initDefaultHandlers()
 	if err != nil {

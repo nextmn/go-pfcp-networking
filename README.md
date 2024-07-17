@@ -1,4 +1,4 @@
-# go-pfcp-networking: PFCP Networking functionnalities on top of go-pfcp
+# go-pfcp-networking: PFCP Networking functionalities on top of go-pfcp
 
 > [!WARNING]
 > Still a Work In Progress. API may change before v1.0.0.

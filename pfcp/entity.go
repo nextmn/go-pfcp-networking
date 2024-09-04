@@ -115,7 +115,7 @@ func NewPFCPEntity(nodeID string, listenAddr string, kind string, handlers map[p
 	return PFCPEntity{
 		nodeID:            ie.NewNodeIDHeuristic(nodeID),
 		listenAddr:        listenAddr,
-		recoveryTimeStamp: ie.NewRecoveryTimeStamp(time.Now()),
+		recoveryTimeStamp: nil,
 		handlers:          handlers,
 		associationsMap:   NewAssociationsMap(),
 		sessionsMap:       NewSessionsMap(),
@@ -228,6 +228,7 @@ func (e *PFCPEntity) Serve(ctx context.Context, conn *PFCPConn) error {
 	serveCtx, cancel := context.WithCancel(ctx)
 	e.closeFunc = cancel
 	defer newconn.Close()
+	e.recoveryTimeStamp = ie.NewRecoveryTimeStamp(time.Now())
 	for {
 		select {
 		case <-serveCtx.Done():

@@ -195,6 +195,12 @@ func (e *PFCPEntity) NewEstablishedPFCPAssociation(nodeID *ie.IE) (association a
 // Listen PFCP and run the entity with the provided context.
 // Always return a non-nil error.
 func (e *PFCPEntity) ListenAndServe() error {
+	return e.ListenAndServeContext(context.Background())
+}
+
+// Listen PFCP and run the entity with the provided context.
+// Always return a non-nil error.
+func (e *PFCPEntity) ListenAndServeContext(ctx context.Context) error {
 	// TODO: listen on both ipv4 and ipv6
 	ipaddr, err := net.ResolveIPAddr("ip", e.listenAddr)
 	if err != nil {
@@ -203,7 +209,7 @@ func (e *PFCPEntity) ListenAndServe() error {
 	if conn, err := ListenPFCP("udp", ipaddr); err != nil {
 		return err
 	} else {
-		e.Serve(context.Background(), conn)
+		e.Serve(ctx, conn)
 		return fmt.Errorf("Server closed")
 	}
 }

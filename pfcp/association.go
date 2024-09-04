@@ -7,11 +7,11 @@ package pfcp_networking
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"time"
 
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
+	"github.com/sirupsen/logrus"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -74,7 +74,7 @@ func (association *PFCPAssociation) SetupInitiatedByCP() error {
 		}
 		asres, ok := resp.(*message.AssociationSetupResponse)
 		if !ok {
-			log.Printf("got unexpected message: %s\n", resp.MessageTypeName())
+			logrus.WithFields(logrus.Fields{"message-type": resp.MessageTypeName()}).Debug("Got unexpected message")
 		}
 		cause, err := asres.Cause.Cause()
 		if err != nil {
@@ -86,7 +86,7 @@ func (association *PFCPAssociation) SetupInitiatedByCP() error {
 			go association.heartMonitoring()
 			return nil
 		}
-		return fmt.Errorf("Associaton setup request rejected")
+		return fmt.Errorf("Association setup request rejected")
 	default:
 		return fmt.Errorf("Local PFCP entity is not a UP function, neither a CP function.")
 	}

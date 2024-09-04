@@ -7,11 +7,11 @@ package pfcp_networking
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"sync"
 
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
+	"github.com/sirupsen/logrus"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -277,7 +277,7 @@ func (s *PFCPSession) Setup() error {
 		}
 		ser, ok := resp.(*message.SessionEstablishmentResponse)
 		if !ok {
-			log.Printf("got unexpected message: %s\n", resp.MessageTypeName())
+			logrus.WithFields(logrus.Fields{"message-type": resp.MessageTypeName()}).Debug("got unexpected message")
 		}
 
 		remoteFseidFields, err := ser.UPFSEID.FSEID()

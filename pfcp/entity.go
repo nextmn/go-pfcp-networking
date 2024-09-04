@@ -8,12 +8,12 @@ package pfcp_networking
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"sync"
 
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 	"github.com/nextmn/go-pfcp-networking/pfcputil"
+	"github.com/sirupsen/logrus"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -234,11 +234,11 @@ func (e *PFCPEntity) Serve(ctx context.Context, conn *PFCPConn) error {
 					}
 					f, err := e.GetHandler(msg.MessageType())
 					if err != nil {
-						log.Println("No Handler for message of this type:", err)
+						logrus.WithFields(logrus.Fields{"message-type": msg.MessageType}).WithError(err).Debug("No Handler for message of this type")
 						return
 					}
 					if resp, err := f(ctx, ReceivedMessage{Message: msg, SenderAddr: addr, Entity: e}); err != nil {
-						log.Println(err)
+						logrus.WithError(err).Debug("Handler raised an error")
 					} else {
 						select {
 						case <-ctx.Done():
@@ -268,58 +268,55 @@ func (e *PFCPEntity) IsControlPlane() bool {
 	return e.kind == "CP"
 }
 
-func (e *PFCPEntity) PrintPFCPRules() {
+func (e *PFCPEntity) LogPFCPRules() {
 	for _, session := range e.GetPFCPSessions() {
 		localIPAddress, err := session.LocalIPAddress()
 		if err != nil {
-			log.Println(err)
+			logrus.WithError(err).Debug("Could not get local IP Address")
 			continue
 		}
 		localSEID, err := session.LocalSEID()
 		if err != nil {
-			log.Println(err)
+			logrus.WithError(err).Debug("Could not get local SEID")
 			continue
 		}
 		remoteIPAddress, err := session.RemoteIPAddress()
 		if err != nil {
-			log.Println(err)
+			logrus.WithError(err).Debug("Could not get remote IP Address")
 			continue
 		}
 		remoteSEID, err := session.RemoteSEID()
 		if err != nil {
-			log.Println(err)
+			logrus.WithError(err).Debug("Could not get remote SEID")
 			continue
 		}
 
-		log.Printf("PFCP Session: Local F-SEID [%s (%d)], Remote F-SEID [%s (%d)]\n",
-			localIPAddress.String(), localSEID,
-			remoteIPAddress.String(), remoteSEID)
 		session.RLock()
 		defer session.RUnlock()
 		for _, pdrid := range session.GetSortedPDRIDs() {
 			pdr, err := session.GetPDR(pdrid)
 			if err != nil {
-				log.Println(err)
+				logrus.WithError(err).Debug("Could not get PDR")
 				continue
 			}
 			precedence, err := pdr.Precedence()
 			if err != nil {
-				log.Println(err)
+				logrus.WithError(err).Debug("Could not get Precedence")
 				continue
 			}
 			farid, err := pdr.FARID()
 			if err != nil {
-				log.Println(err)
+				logrus.WithError(err).Debug("Could not get FAR ID")
 				continue
 			}
 			pdicontent, err := pdr.PDI()
 			if err != nil {
-				log.Println(err)
+				logrus.WithError(err).Debug("Could not get PDI")
 				continue
 			}
 			far, err := session.GetFAR(farid)
 			if err != nil {
-				log.Println(err)
+				logrus.WithError(err).Debug("Could not get FAR")
 				continue
 			}
 			pdi := ie.NewPDI(pdicontent...)
@@ -422,12 +419,24 @@ func (e *PFCPEntity) PrintPFCPRules() {
 				}
 			}
 
-			log.Printf("  ↦ [PDR %d] (%d) Source interface: %s, OHR: %s, F-TEID: %s, UE IP: %s\n", pdrid, precedence, sourceInterfaceLabel, OuterHeaderRemovalLabel, fteidLabel, ueIpAddressLabel)
-			if SDFFilterLabel != "" {
-				log.Printf("    ↪ %s\n", SDFFilterLabel)
-			}
-			log.Printf("    ↪ [FAR %d] OHC: %s, ApplyAction: %s, Destination interface: %s\n", farid, OuterHeaderCreationLabel, ApplyActionLabel, DestinationInterfaceLabel)
+			logrus.WithFields(logrus.Fields{
+				"session/local-fseid":      localIPAddress.String(),
+				"session/local-seid":       localSEID,
+				"session/remote-fseid":     remoteIPAddress.String(),
+				"session/remote-seid":      remoteSEID,
+				"pdr/id":                   pdrid,
+				"pdr/precedence":           precedence,
+				"pdr/source-iface":         sourceInterfaceLabel,
+				"pdr/outer-header-removal": OuterHeaderRemovalLabel,
+				"pdr/fteid":                fteidLabel,
+				"pdr/ue-ip-addr":           ueIpAddressLabel,
+				"pdr/sdf-filter":           SDFFilterLabel,
+				"far/id":                   farid,
+				"far/ohc":                  OuterHeaderCreationLabel,
+				"far/apply-action":         ApplyActionLabel,
+				"far/destination-iface":    DestinationInterfaceLabel,
+			}).Info("PDR")
+
 		}
-		log.Printf("\n")
 	}
 }

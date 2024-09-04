@@ -9,10 +9,10 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net"
 
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
+	"github.com/sirupsen/logrus"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -20,13 +20,13 @@ import (
 type PFCPMessageHandler = func(ctx context.Context, receivedMessage ReceivedMessage) (*OutcomingMessage, error)
 
 func DefaultHeartbeatRequestHandler(ctx context.Context, msg ReceivedMessage) (*OutcomingMessage, error) {
-	log.Println("Received Heartbeat Request")
+	logrus.Debug("Received Heartbeat Request")
 	res := message.NewHeartbeatResponse(msg.Sequence(), msg.Entity.RecoveryTimeStamp())
 	return msg.NewResponse(res)
 }
 
 func DefaultAssociationSetupRequestHandler(ctx context.Context, msg ReceivedMessage) (*OutcomingMessage, error) {
-	log.Println("Received Association Setup Request")
+	logrus.Debug("Received Association Setup Request")
 	m, ok := msg.Message.(*message.AssociationSetupRequest)
 	if !ok {
 		return nil, fmt.Errorf("Issue with Association Setup Request")
@@ -43,18 +43,18 @@ func DefaultAssociationSetupRequestHandler(ctx context.Context, msg ReceivedMess
 	}
 
 	if _, err := msg.Entity.NewEstablishedPFCPAssociation(m.NodeID); err != nil {
-		log.Println("Rejected Association:", err)
+		logrus.WithError(err).Debug("Rejected Association")
 		res := message.NewAssociationSetupResponse(msg.Sequence(), msg.Entity.NodeID(), ie.NewCause(ie.CauseRequestRejected), msg.Entity.RecoveryTimeStamp())
 		return msg.NewResponse(res)
 	}
 
-	log.Println("Association Accepted")
+	logrus.Debug("Association Accepted")
 	res := message.NewAssociationSetupResponse(msg.Sequence(), msg.Entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), msg.Entity.RecoveryTimeStamp())
 	return msg.NewResponse(res)
 }
 
 func DefaultSessionEstablishmentRequestHandler(ctx context.Context, msg ReceivedMessage) (*OutcomingMessage, error) {
-	log.Println("Received Session Establishment Request")
+	logrus.Debug("Received Session Establishment Request")
 	m, ok := msg.Message.(*message.SessionEstablishmentRequest)
 	if !ok {
 		return nil, fmt.Errorf("Issue with Session Establishment Request")
@@ -83,7 +83,7 @@ func DefaultSessionEstablishmentRequestHandler(ctx context.Context, msg Received
 
 	// Sender must have established a PFCP Association with the Receiver Node
 	if _, err := checkSenderAssociation(msg.Entity, msg.SenderAddr); err != nil {
-		log.Println(err)
+		logrus.WithError(err).Debug("No association")
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
 		return msg.NewResponse(res)
 	}
@@ -155,7 +155,7 @@ func DefaultSessionEstablishmentRequestHandler(ctx context.Context, msg Received
 }
 
 func DefaultSessionModificationRequestHandler(ctx context.Context, msg ReceivedMessage) (*OutcomingMessage, error) {
-	log.Println("Received Session Modification Request")
+	logrus.Debug("Received Session Modification Request")
 	m, ok := msg.Message.(*message.SessionModificationRequest)
 	if !ok {
 		return nil, fmt.Errorf("Issue with Session Modification Request")

@@ -20,6 +20,6 @@ type PFCPEntityInterface interface {
 	GetPFCPSessions() []PFCPSessionInterface
 	GetPFCPSession(localIP string, seid SEID) (PFCPSessionInterface, error)
 	AddEstablishedPFCPSession(session PFCPSessionInterface) error
-	PrintPFCPRules()
+	LogPFCPRules()
 	Options() EntityOptionsInterface
 }

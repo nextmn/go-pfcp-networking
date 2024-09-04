@@ -6,8 +6,6 @@
 package pfcp_networking
 
 import (
-	"log"
-
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -16,17 +14,17 @@ type PFCPEntityUP struct {
 	PFCPEntity
 }
 
-func NewPFCPEntityUP(nodeID string, listenAddr string) *PFCPEntityUP {
+func NewPFCPEntityUP(nodeID string, listenAddr string) (*PFCPEntityUP, error) {
 	return NewPFCPEntityUPWithOptions(nodeID, listenAddr, EntityOptions{})
 }
 
-func NewPFCPEntityUPWithOptions(nodeID string, listenAddr string, options api.EntityOptionsInterface) *PFCPEntityUP {
+func NewPFCPEntityUPWithOptions(nodeID string, listenAddr string, options api.EntityOptionsInterface) (*PFCPEntityUP, error) {
 	e := PFCPEntityUP{PFCPEntity: NewPFCPEntity(nodeID, listenAddr, "UP", options)}
 	err := e.initDefaultHandlers()
 	if err != nil {
-		log.Println(err)
+		return nil, err
 	}
-	return &e
+	return &e, nil
 }
 
 func (e *PFCPEntityUP) initDefaultHandlers() error {

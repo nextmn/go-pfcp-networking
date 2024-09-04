@@ -6,11 +6,11 @@
 package pfcp_networking
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
 	"sync"
-	"time"
 
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 	"github.com/nextmn/go-pfcp-networking/pfcputil"
@@ -23,8 +23,6 @@ type PFCPEntity struct {
 	listenAddr        string
 	recoveryTimeStamp *ie.IE
 	handlers          map[pfcputil.MessageType]PFCPMessageHandler
-	conn              *net.UDPConn
-	connMu            sync.Mutex
 	associationsMap   AssociationsMap
 	// each session is associated with a specific PFCPAssociation
 	// (can be changed with some requests)
@@ -33,6 +31,50 @@ type PFCPEntity struct {
 	sessionsMap api.SessionsMapInterface
 	kind        string // "CP" or "UP"
 	options     api.EntityOptionsInterface
+
+	mu        sync.Mutex
+	pfcpConns []*onceClosePfcpConn
+	closeFunc context.CancelFunc
+}
+
+// onceClosePfcpConn wraps a PfcpConn, protecting it from multiple Close calls.
+type onceClosePfcpConn struct {
+	*PFCPConn
+	once     sync.Once
+	closeErr error
+}
+
+func (oc *onceClosePfcpConn) Close() error {
+	oc.once.Do(oc.close)
+	return oc.closeErr
+}
+
+func (oc *onceClosePfcpConn) close() {
+	oc.closeErr = oc.PFCPConn.Close()
+}
+
+func (e *PFCPEntity) registerPfcpConn(conn *onceClosePfcpConn) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.pfcpConns == nil {
+		e.pfcpConns = make([]*onceClosePfcpConn, 1)
+	}
+	e.pfcpConns = append(e.pfcpConns, conn)
+}
+
+func (e *PFCPEntity) closePfcpConn() error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.pfcpConns == nil {
+		return nil
+	}
+	for _, v := range e.pfcpConns {
+		if err := v.Close(); err != nil {
+			return err
+		}
+	}
+	e.pfcpConns = nil
+	return nil
 }
 
 func (e *PFCPEntity) Options() api.EntityOptionsInterface {
@@ -50,15 +92,6 @@ func (e *PFCPEntity) GetPFCPSessions() []api.PFCPSessionInterface {
 
 func (e *PFCPEntity) GetPFCPSession(localIP string, seid api.SEID) (api.PFCPSessionInterface, error) {
 	return e.sessionsMap.GetPFCPSession(localIP, seid)
-}
-
-func (e *PFCPEntity) SendTo(msg []byte, dst net.Addr) error {
-	e.connMu.Lock()
-	defer e.connMu.Unlock()
-	if _, err := e.conn.WriteTo(msg, dst); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (e *PFCPEntity) NodeID() *ie.IE {
@@ -80,30 +113,12 @@ func NewPFCPEntity(nodeID string, listenAddr string, kind string, options api.En
 		listenAddr:        listenAddr,
 		recoveryTimeStamp: nil,
 		handlers:          newDefaultPFCPEntityHandlers(),
-		conn:              nil,
-		connMu:            sync.Mutex{},
 		associationsMap:   NewAssociationsMap(),
 		sessionsMap:       NewSessionsMap(),
 		kind:              kind,
 		options:           options,
+		pfcpConns:         nil,
 	}
-}
-
-func (e *PFCPEntity) listen() error {
-	e.recoveryTimeStamp = ie.NewRecoveryTimeStamp(time.Now())
-	// TODO: listen on multiple ip addresses (ipv4 + ipv6)
-	ipAddr := e.listenAddr
-	udpAddr := pfcputil.CreateUDPAddr(ipAddr, pfcputil.PFCP_PORT)
-	laddr, err := net.ResolveUDPAddr("udp", udpAddr)
-	if err != nil {
-		return err
-	}
-	e.conn, err = net.ListenUDP("udp", laddr)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (e *PFCPEntity) GetHandler(t pfcputil.MessageType) (h PFCPMessageHandler, err error) {
@@ -176,38 +191,73 @@ func (e *PFCPEntity) NewEstablishedPFCPAssociation(nodeID *ie.IE) (association a
 
 }
 
-func (e *PFCPEntity) Start() error {
-	if err := e.listen(); err != nil {
+// Listen PFCP and run the entity with the provided context.
+// Always return a non-nil error.
+func (e *PFCPEntity) ListenAndServe() error {
+	// TODO: listen on both ipv4 and ipv6
+	ipaddr, err := net.ResolveIPAddr("ip", e.listenAddr)
+	if err != nil {
 		return err
 	}
-	buf := make([]byte, pfcputil.DEFAULT_MTU) // TODO: get MTU of interface instead of using DEFAULT_MTU
-	go func() error {
-		for {
-			n, addr, err := e.conn.ReadFrom(buf)
-			if err != nil {
-				return err
-			}
-			msg, err := message.Parse(buf[:n])
-			if err != nil {
-				// undecodable pfcp message
-				continue
-			}
-			f, err := e.GetHandler(msg.MessageType())
-			if err != nil {
-				log.Println("No Handler for message of this type:", err)
-				continue
-			}
-			err = f(ReceivedMessage{Message: msg, SenderAddr: addr, Entity: e})
-			if err != nil {
-				log.Println(err)
-			}
-		}
-	}()
-	return nil
+	if conn, err := ListenPFCP("udp", ipaddr); err != nil {
+		return err
+	} else {
+		e.Serve(context.Background(), conn)
+		return fmt.Errorf("Server closed")
+	}
 }
 
-func (e *PFCPEntity) Stop() error {
-	return e.conn.Close()
+// Run the entity with the provided context.
+// Always return a non-nil error and close the PFCPConn.
+func (e *PFCPEntity) Serve(ctx context.Context, conn *PFCPConn) error {
+	if conn == nil {
+		return fmt.Errorf("Conn is nil")
+	}
+	newconn := &onceClosePfcpConn{PFCPConn: conn}
+	e.registerPfcpConn(newconn)
+	serveCtx, cancel := context.WithCancel(ctx)
+	e.closeFunc = cancel
+	defer newconn.Close()
+	for {
+		select {
+		case <-serveCtx.Done():
+			// Stop signal received
+			return serveCtx.Err()
+		default:
+			buf := make([]byte, pfcputil.DEFAULT_MTU) // TODO: get MTU of interface instead of using DEFAULT_MTU
+			if n, addr, err := conn.ReadFrom(buf); err == nil {
+				go func(ctx context.Context, buffer []byte, sender net.Addr) {
+					msg, err := message.Parse(buffer)
+					if err != nil {
+						// undecodable pfcp message
+						return
+					}
+					f, err := e.GetHandler(msg.MessageType())
+					if err != nil {
+						log.Println("No Handler for message of this type:", err)
+						return
+					}
+					if resp, err := f(ctx, ReceivedMessage{Message: msg, SenderAddr: addr, Entity: e}); err != nil {
+						log.Println(err)
+					} else {
+						select {
+						case <-ctx.Done():
+							return
+						default:
+							conn.Write(resp)
+						}
+					}
+				}(serveCtx, buf[:n], addr)
+			}
+		}
+	}
+}
+
+// Close stop the server and closes active PFCP connection.
+func (e *PFCPEntity) Close() error {
+	e.closeFunc()
+	e.closePfcpConn()
+	return nil
 }
 
 func (e *PFCPEntity) IsUserPlane() bool {

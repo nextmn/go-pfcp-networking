@@ -20,23 +20,19 @@ type ReceivedMessage struct {
 	Entity     api.PFCPEntityInterface
 }
 
-func (receivedMessage *ReceivedMessage) ReplyTo(responseMessage message.Message) error {
+func (receivedMessage *ReceivedMessage) NewResponse(responseMessage message.Message) (*OutcomingMessage, error) {
 	if !pfcputil.IsMessageTypeRequest(receivedMessage.MessageType()) {
-		return fmt.Errorf("receivedMessage shall be a Request Message")
+		return nil, fmt.Errorf("receivedMessage shall be a Request Message")
 	}
 	if !pfcputil.IsMessageTypeResponse(responseMessage.MessageType()) {
-		return fmt.Errorf("responseMessage shall be a Response Message")
+		return nil, fmt.Errorf("responseMessage shall be a Response Message")
 	}
 	if receivedMessage.Sequence() != responseMessage.Sequence() {
-		return fmt.Errorf("responseMessage shall have the same Sequence Number than receivedMessage")
+		return nil, fmt.Errorf("responseMessage shall have the same Sequence Number than receivedMessage")
 	}
-	//XXX: message.Message interface does not implement Marshal()
-	b := make([]byte, responseMessage.MarshalLen())
-	if err := responseMessage.MarshalTo(b); err != nil {
-		return err
-	}
-	if err := receivedMessage.Entity.SendTo(b, receivedMessage.SenderAddr); err != nil {
-		return err
-	}
-	return nil
+	return &OutcomingMessage{
+		Message:     responseMessage,
+		Destination: receivedMessage.SenderAddr,
+	}, nil
+
 }

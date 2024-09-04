@@ -6,6 +6,7 @@
 package pfcp_networking
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -16,47 +17,47 @@ import (
 	"github.com/wmnsk/go-pfcp/message"
 )
 
-type PFCPMessageHandler = func(receivedMessage ReceivedMessage) error
+type PFCPMessageHandler = func(ctx context.Context, receivedMessage ReceivedMessage) (*OutcomingMessage, error)
 
-func DefaultHeartbeatRequestHandler(msg ReceivedMessage) error {
+func DefaultHeartbeatRequestHandler(ctx context.Context, msg ReceivedMessage) (*OutcomingMessage, error) {
 	log.Println("Received Heartbeat Request")
 	res := message.NewHeartbeatResponse(msg.Sequence(), msg.Entity.RecoveryTimeStamp())
-	return msg.ReplyTo(res)
+	return msg.NewResponse(res)
 }
 
-func DefaultAssociationSetupRequestHandler(msg ReceivedMessage) error {
+func DefaultAssociationSetupRequestHandler(ctx context.Context, msg ReceivedMessage) (*OutcomingMessage, error) {
 	log.Println("Received Association Setup Request")
 	m, ok := msg.Message.(*message.AssociationSetupRequest)
 	if !ok {
-		return fmt.Errorf("Issue with Association Setup Request")
+		return nil, fmt.Errorf("Issue with Association Setup Request")
 	}
 	switch {
 	case msg.Message == nil:
-		return fmt.Errorf("msg is nil")
+		return nil, fmt.Errorf("msg is nil")
 	case msg.Entity == nil:
-		return fmt.Errorf("entity is nil")
+		return nil, fmt.Errorf("entity is nil")
 	case msg.Entity.NodeID() == nil:
-		return fmt.Errorf("entity.NodeID() is nil")
+		return nil, fmt.Errorf("entity.NodeID() is nil")
 	case msg.Entity.RecoveryTimeStamp() == nil:
-		return fmt.Errorf("entity.RecoveryTimeStamp() is nil")
+		return nil, fmt.Errorf("entity.RecoveryTimeStamp() is nil")
 	}
 
 	if _, err := msg.Entity.NewEstablishedPFCPAssociation(m.NodeID); err != nil {
 		log.Println("Rejected Association:", err)
 		res := message.NewAssociationSetupResponse(msg.Sequence(), msg.Entity.NodeID(), ie.NewCause(ie.CauseRequestRejected), msg.Entity.RecoveryTimeStamp())
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	log.Println("Association Accepted")
 	res := message.NewAssociationSetupResponse(msg.Sequence(), msg.Entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), msg.Entity.RecoveryTimeStamp())
-	return msg.ReplyTo(res)
+	return msg.NewResponse(res)
 }
 
-func DefaultSessionEstablishmentRequestHandler(msg ReceivedMessage) error {
+func DefaultSessionEstablishmentRequestHandler(ctx context.Context, msg ReceivedMessage) (*OutcomingMessage, error) {
 	log.Println("Received Session Establishment Request")
 	m, ok := msg.Message.(*message.SessionEstablishmentRequest)
 	if !ok {
-		return fmt.Errorf("Issue with Session Establishment Request")
+		return nil, fmt.Errorf("Issue with Session Establishment Request")
 	}
 
 	// If F-SEID is missing or malformed, SEID shall be set to 0
@@ -67,7 +68,7 @@ func DefaultSessionEstablishmentRequestHandler(msg ReceivedMessage) error {
 	// other than the one(s) communicated in the Node ID during Association Establishment Procedure
 	if m.CPFSEID == nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.FSEID))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 	fseid, err := m.CPFSEID.FSEID()
 	if err != nil {
@@ -76,8 +77,7 @@ func DefaultSessionEstablishmentRequestHandler(msg ReceivedMessage) error {
 			cause = ie.CauseInvalidLength
 		}
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(ie.FSEID))
-		return msg.ReplyTo(res)
-		return err
+		return msg.NewResponse(res)
 	}
 	rseid = fseid.SEID
 
@@ -85,13 +85,13 @@ func DefaultSessionEstablishmentRequestHandler(msg ReceivedMessage) error {
 	if _, err := checkSenderAssociation(msg.Entity, msg.SenderAddr); err != nil {
 		log.Println(err)
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	// NodeID is a mandatory IE
 	if m.NodeID == nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.NodeID))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 	nid, err := m.NodeID.NodeID()
 	if err != nil {
@@ -100,7 +100,7 @@ func DefaultSessionEstablishmentRequestHandler(msg ReceivedMessage) error {
 			cause = ie.CauseInvalidLength
 		}
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(ie.NodeID))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	// NodeID is used to define which PFCP Association is associated the PFCP Session
@@ -111,33 +111,33 @@ func DefaultSessionEstablishmentRequestHandler(msg ReceivedMessage) error {
 	association, err := msg.Entity.GetPFCPAssociation(nid)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseNoEstablishedPFCPAssociation))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	// CreatePDR is a Mandatory IE
 	if m.CreatePDR == nil || len(m.CreatePDR) == 0 {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreatePDR))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	// CreateFAR is a Mandatory IE
 	if m.CreateFAR == nil || len(m.CreateFAR) == 0 {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreateFAR))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	// create PDRs
 	pdrs, err, cause, offendingie := NewPDRMap(m.CreatePDR)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	// create FARs
 	fars, err, cause, offendingie := NewFARMap(m.CreateFAR)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	// create session with PDRs and FARs
@@ -145,20 +145,20 @@ func DefaultSessionEstablishmentRequestHandler(msg ReceivedMessage) error {
 	if err != nil {
 		// Send cause(Rule creation/modification failure)
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseRuleCreationModificationFailure))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 	// TODO: Create other type IEs
 	// XXX: QER ie are ignored for the moment
 	// send response: session creation accepted
 	res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseRequestAccepted), session.LocalFSEID())
-	return msg.ReplyTo(res)
+	return msg.NewResponse(res)
 }
 
-func DefaultSessionModificationRequestHandler(msg ReceivedMessage) error {
+func DefaultSessionModificationRequestHandler(ctx context.Context, msg ReceivedMessage) (*OutcomingMessage, error) {
 	log.Println("Received Session Modification Request")
 	m, ok := msg.Message.(*message.SessionModificationRequest)
 	if !ok {
-		return fmt.Errorf("Issue with Session Modification Request")
+		return nil, fmt.Errorf("Issue with Session Modification Request")
 	}
 	// PFCP session related messages for sessions that are already established are sent to the IP address received
 	// in the F-SEID allocated by the peer function or to the IP address of an alternative SMF in the SMF set
@@ -170,20 +170,20 @@ func DefaultSessionModificationRequestHandler(msg ReceivedMessage) error {
 	ielocalnodeid := msg.Entity.NodeID()
 	localnodeid, err := ielocalnodeid.NodeID()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var localip string
 	switch ielocalnodeid.Payload[0] {
 	case ie.NodeIDIPv4Address:
 		ip4, err := net.ResolveIPAddr("ip4", localnodeid)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		localip = ip4.String()
 	case ie.NodeIDIPv6Address:
 		ip6, err := net.ResolveIPAddr("ip6", localnodeid)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		localip = ip6.String()
 	case ie.NodeIDFQDN:
@@ -196,19 +196,19 @@ func DefaultSessionModificationRequestHandler(msg ReceivedMessage) error {
 		case ip4 != nil:
 			localip = ip4.String()
 		default:
-			return fmt.Errorf("Cannot resolve NodeID")
+			return nil, fmt.Errorf("Cannot resolve NodeID")
 		}
 	}
 	localseid := msg.SEID()
 	session, err := msg.Entity.GetPFCPSession(localip, localseid)
 	if err != nil {
 		res := message.NewSessionModificationResponse(0, 0, 0, msg.Sequence(), 0, ie.NewCause(ie.CauseSessionContextNotFound))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	rseid, err := session.RemoteSEID()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	//	// CP F-SEID
@@ -222,35 +222,35 @@ func DefaultSessionModificationRequestHandler(msg ReceivedMessage) error {
 	createpdrs, err, cause, offendingie := NewPDRMap(m.CreatePDR)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	// create FARs
 	createfars, err, cause, offendingie := NewFARMap(m.CreateFAR)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	// update PDRs
 	updatepdrs, err, cause, offendingie := NewPDRMap(m.UpdatePDR)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	// update FARs
 	updatefars, err, cause, offendingie := NewFARMap(m.UpdateFAR)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	err = session.AddUpdatePDRsFARs(createpdrs, createfars, updatepdrs, updatefars)
 	if err != nil {
 		//XXX, offending IE
 		res := message.NewSessionModificationResponse(0, 0, rseid, msg.Sequence(), 0, ie.NewCause(ie.CauseRequestRejected))
-		return msg.ReplyTo(res)
+		return msg.NewResponse(res)
 	}
 
 	//XXX: QER modification/creation is ignored for the moment
@@ -259,7 +259,7 @@ func DefaultSessionModificationRequestHandler(msg ReceivedMessage) error {
 	//XXX: RemoveQER
 
 	res := message.NewSessionModificationResponse(0, 0, rseid, msg.Sequence(), 0, ie.NewCause(ie.CauseRequestAccepted))
-	return msg.ReplyTo(res)
+	return msg.NewResponse(res)
 }
 
 func checkSenderAssociation(entity api.PFCPEntityInterface, senderAddr net.Addr) (api.PFCPAssociationInterface, error) {

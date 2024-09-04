@@ -6,8 +6,6 @@
 package api
 
 import (
-	"net"
-
 	"github.com/wmnsk/go-pfcp/ie"
 )
 
@@ -19,7 +17,6 @@ type PFCPEntityInterface interface {
 	NewEstablishedPFCPAssociation(nodeID *ie.IE) (association PFCPAssociationInterface, err error)
 	RemovePFCPAssociation(association PFCPAssociationInterface) error
 	GetPFCPAssociation(nid string) (association PFCPAssociationInterface, err error)
-	SendTo(msg []byte, dst net.Addr) error
 	GetPFCPSessions() []PFCPSessionInterface
 	GetPFCPSession(localIP string, seid SEID) (PFCPSessionInterface, error)
 	AddEstablishedPFCPSession(session PFCPSessionInterface) error

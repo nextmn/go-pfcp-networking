@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 	"github.com/nextmn/go-pfcp-networking/pfcputil"
@@ -111,7 +112,7 @@ func NewPFCPEntity(nodeID string, listenAddr string, kind string, options api.En
 	return PFCPEntity{
 		nodeID:            ie.NewNodeIDHeuristic(nodeID),
 		listenAddr:        listenAddr,
-		recoveryTimeStamp: nil,
+		recoveryTimeStamp: ie.NewRecoveryTimeStamp(time.Now()),
 		handlers:          newDefaultPFCPEntityHandlers(),
 		associationsMap:   NewAssociationsMap(),
 		sessionsMap:       NewSessionsMap(),

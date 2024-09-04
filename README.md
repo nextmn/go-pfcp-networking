@@ -12,6 +12,7 @@
 ```golang
 upNode := NewPFCPEntityUP(UPF_NODE_ID, UPF_IP_ADDR) // node id can be an IP Address or a FQDN
 upNode.Start()
+defer upNode.Close()
 // Access list of associations
 associations := upNode.GetPFCPAssociations()
 // Access list of sessions
@@ -23,6 +24,7 @@ sessions := upNode.GetPFCPSessions()
 ```golang
 cpNode := NewPFCPEntityCP(SMF_NODE_ID, SMF_IP_ADDR) // node id can be an IP Address or a FQDN
 cpNode.Start()
+defer cpNode.Close()
 association, _ := cpNode.NewEstablishedPFCPAssociation(ie.NewNodeIDHeuristic(UPFADDR))
 session, _ := a.CreateSession(pdrs, fars)
 

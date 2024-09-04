@@ -206,6 +206,10 @@ func (e *PFCPEntity) Start() error {
 	return nil
 }
 
+func (e *PFCPEntity) Stop() error {
+	return e.conn.Close()
+}
+
 func (e *PFCPEntity) IsUserPlane() bool {
 	return e.kind == "UP"
 }

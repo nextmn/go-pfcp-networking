@@ -7,6 +7,7 @@ package pfcp_networking
 
 import (
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
+	"github.com/nextmn/go-pfcp-networking/pfcputil"
 	"github.com/wmnsk/go-pfcp/message"
 )
 
@@ -14,28 +15,18 @@ type PFCPEntityUP struct {
 	PFCPEntity
 }
 
-func NewPFCPEntityUP(nodeID string, listenAddr string) (*PFCPEntityUP, error) {
+func NewPFCPEntityUP(nodeID string, listenAddr string) *PFCPEntityUP {
 	return NewPFCPEntityUPWithOptions(nodeID, listenAddr, EntityOptions{})
 }
 
-func NewPFCPEntityUPWithOptions(nodeID string, listenAddr string, options api.EntityOptionsInterface) (*PFCPEntityUP, error) {
-	e := PFCPEntityUP{PFCPEntity: NewPFCPEntity(nodeID, listenAddr, "UP", options)}
-	err := e.initDefaultHandlers()
-	if err != nil {
-		return nil, err
-	}
-	return &e, nil
+func NewPFCPEntityUPWithOptions(nodeID string, listenAddr string, options api.EntityOptionsInterface) *PFCPEntityUP {
+	return &PFCPEntityUP{PFCPEntity: NewPFCPEntity(nodeID, listenAddr, "UP", newDefaultPFCPEntityUPHandlers(), options)}
 }
 
-func (e *PFCPEntityUP) initDefaultHandlers() error {
-	if err := e.AddHandler(message.MsgTypeAssociationSetupRequest, DefaultAssociationSetupRequestHandler); err != nil {
-		return err
-	}
-	if err := e.AddHandler(message.MsgTypeSessionEstablishmentRequest, DefaultSessionEstablishmentRequestHandler); err != nil {
-		return err
-	}
-	if err := e.AddHandler(message.MsgTypeSessionModificationRequest, DefaultSessionModificationRequestHandler); err != nil {
-		return err
-	}
-	return nil
+func newDefaultPFCPEntityUPHandlers() map[pfcputil.MessageType]PFCPMessageHandler {
+	m := newDefaultPFCPEntityHandlers()
+	m[message.MsgTypeAssociationSetupRequest] = DefaultAssociationSetupRequestHandler
+	m[message.MsgTypeSessionEstablishmentRequest] = DefaultSessionEstablishmentRequestHandler
+	m[message.MsgTypeSessionModificationRequest] = DefaultSessionModificationRequestHandler
+	return m
 }

@@ -11,10 +11,10 @@ type PFCPEntityCP struct {
 	PFCPEntity
 }
 
-func NewPFCPEntityCP(nodeID string, listenAddr string) (*PFCPEntityCP, error) {
+func NewPFCPEntityCP(nodeID string, listenAddr string) *PFCPEntityCP {
 	return NewPFCPEntityCPWithOptions(nodeID, listenAddr, EntityOptions{})
 }
 
-func NewPFCPEntityCPWithOptions(nodeID string, listenAddr string, options api.EntityOptionsInterface) (*PFCPEntityCP, error) {
-	return &PFCPEntityCP{PFCPEntity: NewPFCPEntity(nodeID, listenAddr, "CP", options)}, nil
+func NewPFCPEntityCPWithOptions(nodeID string, listenAddr string, options api.EntityOptionsInterface) *PFCPEntityCP {
+	return &PFCPEntityCP{PFCPEntity: NewPFCPEntity(nodeID, listenAddr, "CP", nil, options)}
 }

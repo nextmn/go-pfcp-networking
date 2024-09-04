@@ -108,12 +108,15 @@ func newDefaultPFCPEntityHandlers() map[pfcputil.MessageType]PFCPMessageHandler 
 	return m
 }
 
-func NewPFCPEntity(nodeID string, listenAddr string, kind string, options api.EntityOptionsInterface) PFCPEntity {
+func NewPFCPEntity(nodeID string, listenAddr string, kind string, handlers map[pfcputil.MessageType]PFCPMessageHandler, options api.EntityOptionsInterface) PFCPEntity {
+	if handlers == nil {
+		handlers = newDefaultPFCPEntityHandlers()
+	}
 	return PFCPEntity{
 		nodeID:            ie.NewNodeIDHeuristic(nodeID),
 		listenAddr:        listenAddr,
 		recoveryTimeStamp: ie.NewRecoveryTimeStamp(time.Now()),
-		handlers:          newDefaultPFCPEntityHandlers(),
+		handlers:          handlers,
 		associationsMap:   NewAssociationsMap(),
 		sessionsMap:       NewSessionsMap(),
 		kind:              kind,

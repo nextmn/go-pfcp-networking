@@ -51,7 +51,9 @@ func (oc *onceClosePfcpConn) Close() error {
 }
 
 func (oc *onceClosePfcpConn) close() {
-	oc.closeErr = oc.PFCPConn.Close()
+	if oc.PFCPConn != nil {
+		oc.closeErr = oc.PFCPConn.Close()
+	}
 }
 
 func (e *PFCPEntity) registerPfcpConn(conn *onceClosePfcpConn) {

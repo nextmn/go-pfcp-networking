@@ -397,36 +397,45 @@ func (e *PFCPEntity) LogPFCPRules() {
 				}
 			}
 
-			ForwardingParametersIe := far.ForwardingParameters()
+			isFP := true
+			ForwardingParametersIe, err := far.ForwardingParameters()
+			if err != nil {
+				isFP = false
+
+			}
 			OuterHeaderCreationLabel := "No"
-			if ohc, err := ForwardingParametersIe.OuterHeaderCreation(); err == nil {
-				ohcb, _ := ohc.Marshal()
-				ohcIe := ie.New(ie.OuterHeaderCreation, ohcb)
-				switch {
-				case ohcIe.HasTEID() && ohcIe.HasIPv4():
-					OuterHeaderCreationLabel = fmt.Sprintf("[%s (%d)]", ohc.IPv4Address.String(), ohc.TEID)
-				case ohcIe.HasTEID() && ohcIe.HasIPv6():
-					OuterHeaderCreationLabel = fmt.Sprintf("[%s (%d)]", ohc.IPv6Address.String(), ohc.TEID)
-				default:
-					OuterHeaderCreationLabel = "Other"
+			if isFP {
+				if ohc, err := ForwardingParametersIe.OuterHeaderCreation(); err == nil {
+					ohcb, _ := ohc.Marshal()
+					ohcIe := ie.New(ie.OuterHeaderCreation, ohcb)
+					switch {
+					case ohcIe.HasTEID() && ohcIe.HasIPv4():
+						OuterHeaderCreationLabel = fmt.Sprintf("[%s (%d)]", ohc.IPv4Address.String(), ohc.TEID)
+					case ohcIe.HasTEID() && ohcIe.HasIPv6():
+						OuterHeaderCreationLabel = fmt.Sprintf("[%s (%d)]", ohc.IPv6Address.String(), ohc.TEID)
+					default:
+						OuterHeaderCreationLabel = "Other"
+					}
 				}
 			}
 
 			DestinationInterfaceLabel := "Not defined"
-			if destination, err := ForwardingParametersIe.DestinationInterface(); err == nil {
-				switch destination {
-				case ie.DstInterfaceAccess:
-					DestinationInterfaceLabel = "Access"
-				case ie.DstInterfaceCore:
-					DestinationInterfaceLabel = "Core"
-				case ie.DstInterfaceSGiLANN6LAN:
-					DestinationInterfaceLabel = "SGi-LAN/N6-LAN"
-				case ie.DstInterfaceCPFunction:
-					DestinationInterfaceLabel = "CP Function"
-				case ie.DstInterfaceLIFunction:
-					DestinationInterfaceLabel = "LI Function"
-				case ie.DstInterface5GVNInternal:
-					DestinationInterfaceLabel = "5G VN Internal"
+			if isFP {
+				if destination, err := ForwardingParametersIe.DestinationInterface(); err == nil {
+					switch destination {
+					case ie.DstInterfaceAccess:
+						DestinationInterfaceLabel = "Access"
+					case ie.DstInterfaceCore:
+						DestinationInterfaceLabel = "Core"
+					case ie.DstInterfaceSGiLANN6LAN:
+						DestinationInterfaceLabel = "SGi-LAN/N6-LAN"
+					case ie.DstInterfaceCPFunction:
+						DestinationInterfaceLabel = "CP Function"
+					case ie.DstInterfaceLIFunction:
+						DestinationInterfaceLabel = "LI Function"
+					case ie.DstInterface5GVNInternal:
+						DestinationInterfaceLabel = "5G VN Internal"
+					}
 				}
 			}
 

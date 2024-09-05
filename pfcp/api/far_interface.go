@@ -12,6 +12,6 @@ type FARID = uint32
 type FARInterface interface {
 	ID() (FARID, error)
 	ApplyAction() *ie.IE
-	ForwardingParameters() *ie.IE
+	ForwardingParameters() (*ie.IE, error)
 	NewCreateFAR() *ie.IE
 }

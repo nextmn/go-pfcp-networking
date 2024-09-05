@@ -6,6 +6,7 @@
 package pfcp_networking
 
 import (
+	"fmt"
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 	"github.com/wmnsk/go-pfcp/ie"
 )
@@ -32,8 +33,14 @@ func (far *FAR) ApplyAction() *ie.IE {
 	return far.applyAction
 }
 
-func (far *FAR) ForwardingParameters() *ie.IE {
-	return far.forwardingParameters
+func (far *FAR) ForwardingParameters() (*ie.IE, error) {
+	// This IE shall be present when the Apply Action requests
+	// the packets to be forwarded. It may be present otherwise.
+	if far.ForwardingParameters == nil {
+		return nil, fmt.Errorf("No forwarding parameters ie")
+	}
+	return far.forwardingParameters, nil
+
 }
 
 func (far *FAR) NewCreateFAR() *ie.IE {

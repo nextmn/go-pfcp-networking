@@ -240,7 +240,7 @@ func DefaultSessionModificationRequestHandler(ctx context.Context, msg ReceivedM
 	}
 
 	// update FARs
-	updatefars, err, cause, offendingie := NewFARMap(m.UpdateFAR)
+	updatefars, err, cause, offendingie := NewFARMapUpdate(m.UpdateFAR)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
 		return msg.NewResponse(res)

@@ -68,8 +68,7 @@ func (m *FARMap) SimulateAdd(far api.FARInterface) error {
 }
 
 func (m *FARMap) Update(far api.FARInterface) error {
-	// XXX: instead of replacing old FAR with new one,
-	// only present fields should be replaced
+	// only present fields are replaced
 	id, err := far.ID()
 	if err != nil {
 		return err
@@ -79,8 +78,12 @@ func (m *FARMap) Update(far api.FARInterface) error {
 	if _, exists := m.farmap[id]; !exists {
 		return fmt.Errorf("FAR %d does not exist.", id)
 	} else {
-		delete(m.farmap, id)
-		m.farmap[id] = far
+		if far.ApplyAction() != nil {
+			m.farmap[id].SetApplyAction(far.ApplyAction())
+		}
+		if fp, err := far.ForwardingParameters(); err == nil {
+			m.farmap[id].SetForwardingParameters(fp)
+		}
 		return nil
 	}
 }
@@ -174,6 +177,39 @@ func NewFARMap(fars []*ie.IE) (farmap *FARMap, err error, cause uint8, offending
 		} else {
 			err = f.Add(NewFAR(ie.NewFARID(id), ie.NewApplyAction(aa...), ie.NewForwardingParameters(fp...)))
 		}
+	}
+	return &f, nil, 0, 0
+
+}
+
+func NewFARMapUpdate(fars []*ie.IE) (*FARMap, error, uint8, uint16) {
+	f := FARMap{
+		farmap: make(farmapInternal),
+		mu:     sync.RWMutex{},
+	}
+	for _, far := range fars {
+		id, err := far.FARID()
+		if err != nil {
+			switch err {
+			case io.ErrUnexpectedEOF:
+				return nil, err, ie.CauseInvalidLength, ie.FARID
+			case ie.ErrIENotFound:
+				return nil, err, ie.CauseMandatoryIEMissing, ie.FARID
+			default:
+				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreateFAR
+			}
+		}
+		var ieaa *ie.IE = nil
+		aa, err := far.ApplyAction()
+		if err == nil {
+			ieaa = ie.NewApplyAction(aa...)
+		}
+		var iefp *ie.IE = nil
+		fp, err := far.ForwardingParameters()
+		if err == nil {
+			iefp = ie.NewForwardingParameters(fp...)
+		}
+		f.Update(NewFAR(ie.NewFARID(id), ieaa, iefp))
 	}
 	return &f, nil, 0, 0
 

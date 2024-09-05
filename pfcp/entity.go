@@ -401,7 +401,6 @@ func (e *PFCPEntity) LogPFCPRules() {
 			ForwardingParametersIe, err := far.ForwardingParameters()
 			if err != nil {
 				isFP = false
-
 			}
 			OuterHeaderCreationLabel := "No"
 			if isFP {

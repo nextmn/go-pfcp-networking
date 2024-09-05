@@ -162,31 +162,17 @@ func NewFARMap(fars []*ie.IE) (farmap *FARMap, err error, cause uint8, offending
 			mustHaveFP = true
 		}
 		fp, err := far.ForwardingParameters()
-
-		if err != nil && mustHaveFP {
-			fp, err = far.ForwardingParameters()
-			if err != nil {
-				//XXX:  workaround for a free5gc-smf bug: Forwarding Parameters are missing sometimes
-				fp = make([]*ie.IE, 0)
-				hasFP = true
-				//			if err == io.ErrUnexpectedEOF {
-				//				return nil, err, ie.CauseInvalidLength, ie.ForwardingParameters
-				//			}
-				//			if ie.NewApplyAction(aa).HasFORW() && err == ie.ErrIENotFound {
-				//				return nil, err, ie.CauseConditionalIEMissing, ie.ForwardingParameters
-				//			}
-			} else if err == nil {
-				hasFP = true
-			}
+		if err == nil {
+			hasFP = true
+		}
+		if mustHaveFP && !hasFP {
+			return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreateFAR
 		}
 
 		if !hasFP {
 			err = f.Add(NewFAR(ie.NewFARID(id), ie.NewApplyAction(aa...), nil))
 		} else {
 			err = f.Add(NewFAR(ie.NewFARID(id), ie.NewApplyAction(aa...), ie.NewForwardingParameters(fp...)))
-		}
-		if err != nil {
-			return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreateFAR
 		}
 	}
 	return &f, nil, 0, 0

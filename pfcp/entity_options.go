@@ -13,35 +13,38 @@ import (
 )
 
 type EntityOptions struct {
-	messageRetransmissionT1 *time.Duration
-	messageRetransmissionN1 *int
+	messageRetransmissionT1 time.Duration
+	messageRetransmissionN1 int
 }
 
-func NewEntityOptions(messageRetransmissionT1 *time.Duration, messageRetransmissionN1 *int) (*EntityOptions, error) {
-	if (messageRetransmissionT1 != nil) && (*messageRetransmissionT1 < 1*time.Microsecond) {
-		return nil, fmt.Errorf("messageRetransmissionT1 must be strictly greater than zero.")
-	}
-	if (messageRetransmissionN1 != nil) && (*messageRetransmissionN1 < 0) {
-		return nil, fmt.Errorf("messageRetransmissionN1 must be greater than zero")
-	}
+// NewEntityOptions create a new EntityOptions with default settings.
+func NewEntityOptions() *EntityOptions {
 	return &EntityOptions{
-		messageRetransmissionT1: messageRetransmissionT1,
-		messageRetransmissionN1: messageRetransmissionN1,
-	}, nil
+		messageRetransmissionT1: pfcputil.MESSAGE_RETRANSMISSION_N1,
+		messageRetransmissionN1: pfcputil.MESSAGE_RETRANSMISSION_N1,
+	}
 }
 
 func (eo EntityOptions) MessageRetransmissionT1() time.Duration {
-	if eo.messageRetransmissionT1 != nil {
-		return *eo.messageRetransmissionT1
-	} else {
-		return pfcputil.MESSAGE_RETRANSMISSION_T1
+	return eo.messageRetransmissionT1
+}
+
+func (eo EntityOptions) SetMessageRetransmissionT1(messageRetransmissionT1 time.Duration) error {
+	if messageRetransmissionT1 < 1*time.Microsecond {
+		return fmt.Errorf("messageRetransmissionT1 must be strictly greater than zero.")
 	}
+	eo.messageRetransmissionT1 = messageRetransmissionT1
+	return nil
 }
 
 func (eo EntityOptions) MessageRetransmissionN1() int {
-	if eo.messageRetransmissionN1 != nil {
-		return *eo.messageRetransmissionN1
-	} else {
-		return pfcputil.MESSAGE_RETRANSMISSION_N1
+	return eo.messageRetransmissionN1
+}
+
+func (eo EntityOptions) SetMessageRetransmissionN1(messageRetransmissionN1 int) error {
+	if messageRetransmissionN1 < 0 {
+		return fmt.Errorf("messageRetransmissionN1 must be greater than zero")
 	}
+	eo.messageRetransmissionN1 = messageRetransmissionN1
+	return nil
 }

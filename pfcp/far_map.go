@@ -205,7 +205,7 @@ func NewFARMapUpdate(fars []*ie.IE) (*FARMap, error, uint8, uint16) {
 			ieaa = ie.NewApplyAction(aa...)
 		}
 		var iefp *ie.IE = nil
-		fp, err := far.ForwardingParameters()
+		fp, err := far.UpdateForwardingParameters()
 		if err == nil {
 			iefp = ie.NewForwardingParameters(fp...)
 		}

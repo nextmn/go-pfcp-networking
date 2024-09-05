@@ -81,6 +81,7 @@ func (m *FARMap) Update(far api.FARInterface) error {
 		if far.ApplyAction() != nil {
 			m.farmap[id].SetApplyAction(far.ApplyAction())
 		}
+		// XXX: update fields in forwarding paramaters instead of replacing
 		if fp, err := far.ForwardingParameters(); err == nil {
 			m.farmap[id].SetForwardingParameters(fp)
 		}
@@ -207,7 +208,7 @@ func NewFARMapUpdate(fars []*ie.IE) (*FARMap, error, uint8, uint16) {
 		var iefp *ie.IE = nil
 		fp, err := far.UpdateForwardingParameters()
 		if err == nil {
-			iefp = ie.NewForwardingParameters(fp...)
+			iefp = ie.NewUpdateForwardingParameters(fp...)
 		}
 		f.Update(NewFAR(ie.NewFARID(id), ieaa, iefp))
 	}

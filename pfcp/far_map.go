@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
+	"github.com/sirupsen/logrus"
 	"github.com/wmnsk/go-pfcp/ie"
 )
 
@@ -68,6 +69,7 @@ func (m *FARMap) SimulateAdd(far api.FARInterface) error {
 }
 
 func (m *FARMap) Update(far api.FARInterface) error {
+	logrus.Trace("Inside farmap.Update()")
 	// only present fields are replaced
 	id, err := far.ID()
 	if err != nil {
@@ -76,20 +78,32 @@ func (m *FARMap) Update(far api.FARInterface) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if _, exists := m.farmap[id]; !exists {
+		logrus.WithFields(logrus.Fields{"far-id": id, "current_map": m.farmap}).Trace("Updating FAR: this FAR id does not exist")
 		return fmt.Errorf("FAR %d does not exist.", id)
 	} else {
+		logrus.WithFields(logrus.Fields{"far-id": id}).Trace("Updating FAR")
 		if far.ApplyAction() != nil {
 			m.farmap[id].SetApplyAction(far.ApplyAction())
+			logrus.WithFields(logrus.Fields{"far-id": id}).Trace("Updating FAR Apply Action")
 		}
 		// XXX: update fields in forwarding paramaters instead of replacing
 		if fp, err := far.ForwardingParameters(); err == nil {
+			if fp == nil {
+				logrus.Warn("Removing forwarding parameters. aborting")
+				return nil
+			}
 			m.farmap[id].SetForwardingParameters(fp)
+			logrus.WithFields(logrus.Fields{"far-id": id}).Trace("Updating FAR Forwarding Parameters")
+		} else {
+			logrus.WithFields(logrus.Fields{"far-id": id}).Trace("Updating FAR but not Forwarding Parameters")
 		}
+
 		return nil
 	}
 }
 
 func (m *FARMap) SimulateUpdate(far api.FARInterface) error {
+	logrus.Trace("Inside farmap.SimulateUpdate()")
 	id, err := far.ID()
 	if err != nil {
 		return err
@@ -97,8 +111,10 @@ func (m *FARMap) SimulateUpdate(far api.FARInterface) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if _, exists := m.farmap[id]; !exists {
+		logrus.WithFields(logrus.Fields{"far-id": id, "current_map": m.farmap}).Trace("Simulate Updating FAR: this FAR id does not exist")
 		return fmt.Errorf("FAR %d does not exist.", id)
 	}
+	logrus.WithFields(logrus.Fields{"far-id": id, "current_map": m.farmap}).Trace("Simulate Updating FAR: exist")
 	return nil
 }
 func (m *FARMap) Remove(key api.FARID) error {
@@ -208,9 +224,9 @@ func NewFARMapUpdate(fars []*ie.IE) (*FARMap, error, uint8, uint16) {
 		var iefp *ie.IE = nil
 		fp, err := far.UpdateForwardingParameters()
 		if err == nil {
-			iefp = ie.NewUpdateForwardingParameters(fp...)
+			iefp = ie.NewForwardingParameters(fp...)
 		}
-		f.Update(NewFAR(ie.NewFARID(id), ieaa, iefp))
+		f.Add(NewFAR(ie.NewFARID(id), ieaa, iefp))
 	}
 	return &f, nil, 0, 0
 

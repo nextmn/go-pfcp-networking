@@ -194,6 +194,9 @@ func NewFARMap(fars []*ie.IE) (farmap *FARMap, err error, cause uint8, offending
 		} else {
 			err = f.Add(NewFAR(ie.NewFARID(id), ie.NewApplyAction(aa...), ie.NewForwardingParameters(fp...)))
 		}
+		if err != nil {
+			return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreateFAR
+		}
 	}
 	return &f, nil, 0, 0
 

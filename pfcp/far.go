@@ -41,7 +41,7 @@ func (far *FAR) SetApplyAction(aa *ie.IE) error {
 func (far *FAR) ForwardingParameters() (*ie.IE, error) {
 	// This IE shall be present when the Apply Action requests
 	// the packets to be forwarded. It may be present otherwise.
-	if far.ForwardingParameters == nil {
+	if far.forwardingParameters == nil {
 		return nil, fmt.Errorf("No forwarding parameters ie")
 	}
 	return far.forwardingParameters, nil

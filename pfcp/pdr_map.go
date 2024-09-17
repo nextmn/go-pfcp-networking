@@ -274,7 +274,7 @@ func NewPDRMap(pdrs []*ie.IE) (pdrmap *PDRMap, err error, cause uint8, offending
 		var ohrIE *ie.IE
 		ohr, err := pdr.OuterHeaderRemoval()
 		if err == nil {
-			// ohr can be 1 byte lenght with old format
+			// ohr can be 1 byte length with old format
 			if len(ohr) == 1 {
 				ohr = append(ohr, 0)
 			}

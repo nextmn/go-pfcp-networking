@@ -151,7 +151,7 @@ func (peer *PFCPPeer) Close() error {
 }
 
 // Get next sequence number available for this PFCPPeer
-// Sequence murber shall be unique for each oustanding
+// Sequence murber shall be unique for each outstanding
 // message sourced from the same IP/UDP endpoint.
 // Since we use exactly 1 IP/UDP endpoint per peer to send Requests,
 // our sequence numbers are also unique per peer.
@@ -230,7 +230,7 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 			}
 		}
 	}
-	return nil, fmt.Errorf("Unsuccessfull transfer of Request message")
+	return nil, fmt.Errorf("Unsuccessful transfer of Request message")
 }
 
 // Send an Heartbeat request, return true if the PFCP peer is alive.

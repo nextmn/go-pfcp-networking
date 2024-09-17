@@ -86,7 +86,7 @@ func (m *FARMap) Update(far api.FARInterface) error {
 			m.farmap[id].SetApplyAction(far.ApplyAction())
 			logrus.WithFields(logrus.Fields{"far-id": id}).Trace("Updating FAR Apply Action")
 		}
-		// XXX: update fields in forwarding paramaters instead of replacing
+		// XXX: update fields in forwarding parameters instead of replacing
 		if fp, err := far.ForwardingParameters(); err == nil {
 			if fp == nil {
 				logrus.Warn("Removing forwarding parameters. aborting")

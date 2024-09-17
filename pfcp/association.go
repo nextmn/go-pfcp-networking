@@ -38,7 +38,7 @@ func newEstablishedPFCPAssociation(peer api.PFCPPeerInterface) (api.PFCPAssociat
 
 // Get next available SEID for this PFCPAssociation.
 // SEID are not globally unique, F-SEID are globally unique.
-// F-SEID are constitued of IPv4 and/or IPv6 address(es) of the peer
+// F-SEID consist of IPv4 and/or IPv6 address(es) of the peer
 // plus the SEID. So as long as SEID are unique per peer (i.e. per PFCPAssociation),
 // everything should be okay.
 func (association *PFCPAssociation) GetNextSEID() api.SEID {

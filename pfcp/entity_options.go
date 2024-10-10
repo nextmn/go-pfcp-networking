@@ -20,7 +20,7 @@ type EntityOptions struct {
 // NewEntityOptions create a new EntityOptions with default settings.
 func NewEntityOptions() *EntityOptions {
 	return &EntityOptions{
-		messageRetransmissionT1: pfcputil.MESSAGE_RETRANSMISSION_N1,
+		messageRetransmissionT1: pfcputil.MESSAGE_RETRANSMISSION_T1,
 		messageRetransmissionN1: pfcputil.MESSAGE_RETRANSMISSION_N1,
 	}
 }

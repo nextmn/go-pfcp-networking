@@ -72,6 +72,9 @@ func (e *PFCPEntity) closePfcpConn() error {
 		return nil
 	}
 	for _, v := range e.pfcpConns {
+		if v == nil {
+			continue
+		}
 		if err := v.Close(); err != nil {
 			return err
 		}
@@ -229,7 +232,7 @@ func (e *PFCPEntity) Serve(ctx context.Context, conn *PFCPConn) error {
 	e.registerPfcpConn(newconn)
 	serveCtx, cancel := context.WithCancel(ctx)
 	e.closeFunc = cancel
-	defer newconn.Close()
+	defer e.closePfcpConn()
 	e.recoveryTimeStamp = ie.NewRecoveryTimeStamp(time.Now())
 	for {
 		select {
@@ -268,8 +271,9 @@ func (e *PFCPEntity) Serve(ctx context.Context, conn *PFCPConn) error {
 
 // Close stop the server and closes active PFCP connection.
 func (e *PFCPEntity) Close() error {
-	e.closeFunc()
-	e.closePfcpConn()
+	if e.closeFunc != nil {
+		e.closeFunc()
+	}
 	return nil
 }
 

@@ -14,6 +14,7 @@ import (
 
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 	"github.com/nextmn/go-pfcp-networking/pfcputil"
+
 	"github.com/sirupsen/logrus"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
@@ -245,7 +246,7 @@ func (e *PFCPEntity) Serve(ctx context.Context, conn *PFCPConn) error {
 				go func(ctx context.Context, buffer []byte, sender net.Addr) {
 					msg, err := message.Parse(buffer)
 					if err != nil {
-						// undecodable pfcp message
+						logrus.WithError(err).Debug("Undecodable PFCP message")
 						return
 					}
 					f, err := e.GetHandler(msg.MessageType())

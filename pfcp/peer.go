@@ -13,6 +13,8 @@ import (
 
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 	"github.com/nextmn/go-pfcp-networking/pfcputil"
+
+	"github.com/sirupsen/logrus"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -127,6 +129,13 @@ func (peer *PFCPPeer) loopUnwrapped() {
 		ch, exists := e.queue[sn]
 		if exists {
 			ch <- msgArray[:size]
+			logrus.WithFields(logrus.Fields{
+				"sn": sn,
+			}).Debug("Received new PFCP Response")
+		} else {
+			logrus.WithFields(logrus.Fields{
+				"sn": sn,
+			}).Debug("Received new PFCP Response but Sequence Number is not matching")
 		}
 	}(b, n, peer)
 }
@@ -212,6 +221,12 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 	}
 
 	for i := 0; i < peer.LocalEntity().Options().MessageRetransmissionN1(); i++ {
+		logrus.WithFields(logrus.Fields{
+			"sn":  sn,
+			"t1":  peer.LocalEntity().Options().MessageRetransmissionT1(),
+			"n1":  peer.LocalEntity().Options().MessageRetransmissionN1(),
+			"try": i,
+		}).Trace("Sending new PFCP request")
 		select {
 		case r := <-ch:
 			msg, err := message.Parse(r)
@@ -230,6 +245,11 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 			}
 		}
 	}
+	logrus.WithFields(logrus.Fields{
+		"sn": sn,
+		"t1": peer.LocalEntity().Options().MessageRetransmissionT1(),
+		"n1": peer.LocalEntity().Options().MessageRetransmissionN1(),
+	}).Trace("No response to PFCP request")
 	return nil, fmt.Errorf("Unsuccessful transfer of Request message")
 }
 

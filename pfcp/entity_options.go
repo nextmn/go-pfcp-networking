@@ -26,6 +26,9 @@ func NewEntityOptions() *EntityOptions {
 }
 
 func (eo EntityOptions) MessageRetransmissionT1() time.Duration {
+	if eo.messageRetransmissionT1 == 0 {
+		return pfcputil.MESSAGE_RETRANSMISSION_T1
+	}
 	return eo.messageRetransmissionT1
 }
 
@@ -38,6 +41,9 @@ func (eo EntityOptions) SetMessageRetransmissionT1(messageRetransmissionT1 time.
 }
 
 func (eo EntityOptions) MessageRetransmissionN1() int {
+	if eo.messageRetransmissionN1 == 0 {
+		return pfcputil.MESSAGE_RETRANSMISSION_N1
+	}
 	return eo.messageRetransmissionN1
 }
 

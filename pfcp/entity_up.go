@@ -6,6 +6,8 @@
 package pfcp_networking
 
 import (
+	"net/netip"
+
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 	"github.com/nextmn/go-pfcp-networking/pfcputil"
 	"github.com/wmnsk/go-pfcp/message"
@@ -15,11 +17,11 @@ type PFCPEntityUP struct {
 	PFCPEntity
 }
 
-func NewPFCPEntityUP(nodeID string, listenAddr string) *PFCPEntityUP {
+func NewPFCPEntityUP(nodeID string, listenAddr netip.Addr) *PFCPEntityUP {
 	return NewPFCPEntityUPWithOptions(nodeID, listenAddr, EntityOptions{})
 }
 
-func NewPFCPEntityUPWithOptions(nodeID string, listenAddr string, options api.EntityOptionsInterface) *PFCPEntityUP {
+func NewPFCPEntityUPWithOptions(nodeID string, listenAddr netip.Addr, options api.EntityOptionsInterface) *PFCPEntityUP {
 	return &PFCPEntityUP{PFCPEntity: NewPFCPEntity(nodeID, listenAddr, "UP", newDefaultPFCPEntityUPHandlers(), options)}
 }
 

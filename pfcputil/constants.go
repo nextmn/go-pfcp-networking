@@ -13,7 +13,7 @@ const (
 
 	// The UDP Destination Port number for a Request message shall be 8805.
 	// It is the registered port number for PFCP.
-	PFCP_PORT = "8805"
+	PFCP_PORT = 8805
 
 	// When sending a Request message, the sending PFCP entity shall start a timer T1.
 	// The sending entity shall consider that the Request message has been lost if

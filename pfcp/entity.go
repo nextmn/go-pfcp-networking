@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/netip"
 	"sync"
 	"time"
 
@@ -22,7 +23,7 @@ import (
 
 type PFCPEntity struct {
 	nodeID            *ie.IE
-	listenAddr        string
+	listenAddr        netip.Addr
 	recoveryTimeStamp *ie.IE
 	handlers          map[pfcputil.MessageType]PFCPMessageHandler
 	associationsMap   AssociationsMap
@@ -114,7 +115,7 @@ func newDefaultPFCPEntityHandlers() map[pfcputil.MessageType]PFCPMessageHandler 
 	return m
 }
 
-func NewPFCPEntity(nodeID string, listenAddr string, kind string, handlers map[pfcputil.MessageType]PFCPMessageHandler, options api.EntityOptionsInterface) PFCPEntity {
+func NewPFCPEntity(nodeID string, listenAddr netip.Addr, kind string, handlers map[pfcputil.MessageType]PFCPMessageHandler, options api.EntityOptionsInterface) PFCPEntity {
 	if handlers == nil {
 		handlers = newDefaultPFCPEntityHandlers()
 	}
@@ -211,11 +212,7 @@ func (e *PFCPEntity) ListenAndServe() error {
 // Always return a non-nil error.
 func (e *PFCPEntity) ListenAndServeContext(ctx context.Context) error {
 	// TODO: listen on both ipv4 and ipv6
-	ipaddr, err := net.ResolveIPAddr("ip", e.listenAddr)
-	if err != nil {
-		return err
-	}
-	if conn, err := ListenPFCP("udp", ipaddr); err != nil {
+	if conn, err := ListenPFCP("udp", e.listenAddr); err != nil {
 		return err
 	} else {
 		e.Serve(ctx, conn)

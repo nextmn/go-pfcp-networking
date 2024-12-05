@@ -5,16 +5,20 @@
 
 package pfcp_networking
 
-import "github.com/nextmn/go-pfcp-networking/pfcp/api"
+import (
+	"net/netip"
+
+	"github.com/nextmn/go-pfcp-networking/pfcp/api"
+)
 
 type PFCPEntityCP struct {
 	PFCPEntity
 }
 
-func NewPFCPEntityCP(nodeID string, listenAddr string) *PFCPEntityCP {
+func NewPFCPEntityCP(nodeID string, listenAddr netip.Addr) *PFCPEntityCP {
 	return NewPFCPEntityCPWithOptions(nodeID, listenAddr, EntityOptions{})
 }
 
-func NewPFCPEntityCPWithOptions(nodeID string, listenAddr string, options api.EntityOptionsInterface) *PFCPEntityCP {
+func NewPFCPEntityCPWithOptions(nodeID string, listenAddr netip.Addr, options api.EntityOptionsInterface) *PFCPEntityCP {
 	return &PFCPEntityCP{PFCPEntity: NewPFCPEntity(nodeID, listenAddr, "CP", nil, options)}
 }

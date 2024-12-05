@@ -7,6 +7,7 @@ package pfcp_networking
 import (
 	"fmt"
 	"net"
+	"net/netip"
 
 	"github.com/nextmn/go-pfcp-networking/pfcputil"
 )
@@ -15,18 +16,14 @@ type PFCPConn struct {
 	net.UDPConn
 }
 
-func ListenPFCP(network string, laddr *net.IPAddr) (*PFCPConn, error) {
+func ListenPFCP(network string, laddr netip.Addr) (*PFCPConn, error) {
 	switch network {
 	case "udp", "udp4", "udp6":
 	default:
 		return nil, fmt.Errorf("unknown network")
 	}
-	udpAddr := pfcputil.CreateUDPAddr(laddr.String(), pfcputil.PFCP_PORT)
-	ludpaddr, err := net.ResolveUDPAddr(network, udpAddr)
-	if err != nil {
-		return nil, err
-	}
-	if conn, err := net.ListenUDP(network, ludpaddr); err == nil {
+	udpaddr := net.UDPAddrFromAddrPort(netip.AddrPortFrom(laddr, pfcputil.PFCP_PORT))
+	if conn, err := net.ListenUDP(network, udpaddr); err == nil {
 		return &PFCPConn{
 			UDPConn: *conn,
 		}, nil

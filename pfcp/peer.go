@@ -6,8 +6,10 @@
 package pfcp_networking
 
 import (
+	"context"
 	"fmt"
 	"net"
+	"net/netip"
 	"sync"
 	"time"
 
@@ -47,22 +49,21 @@ func (peer *PFCPPeer) NodeID() *ie.IE {
 	return peer.nodeID
 }
 func newPFCPPeer(srv api.PFCPEntityInterface, nodeID *ie.IE, kind string) (peer *PFCPPeer, err error) {
-	ipAddr, err := nodeID.NodeID()
+	remoteHost, err := nodeID.NodeID()
 	if err != nil {
 		return nil, err
 	}
-	udpAddr := pfcputil.CreateUDPAddr(ipAddr, pfcputil.PFCP_PORT)
-	raddr, err := net.ResolveUDPAddr("udp", udpAddr)
+	ips, err := net.DefaultResolver.LookupNetIP(context.TODO(), "ip", remoteHost)
 	if err != nil {
 		return nil, err
 	}
-	c, err := net.Dial("udp", udpAddr)
-	if err != nil {
-		return nil, err
+	if len(ips) < 1 {
+		return nil, fmt.Errorf("could not resolve peer domain name")
 	}
-	c.Close()
-	laddr := c.LocalAddr().(*net.UDPAddr)
-	conn, err := net.ListenUDP("udp", laddr)
+
+	raddr := net.UDPAddrFromAddrPort(netip.AddrPortFrom(ips[0], pfcputil.PFCP_PORT))
+
+	conn, err := net.DialUDP("udp", nil, raddr)
 	if err != nil {
 		return nil, err
 	}

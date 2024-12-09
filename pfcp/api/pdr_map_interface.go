@@ -5,6 +5,8 @@
 
 package api
 
+import "github.com/wmnsk/go-pfcp/ie"
+
 type PDRMapInterface interface {
 	Get(key PDRID) (PDRInterface, error)
 	Add(pdr PDRInterface) error
@@ -15,4 +17,6 @@ type PDRMapInterface interface {
 	SimulateRemove(key PDRID) error
 	GetSortedPDRIDs() []PDRID
 	Foreach(func(PDRInterface) error) error
+	IntoCreatePDR() []*ie.IE
+	IntoUpdatePDR() []*ie.IE
 }

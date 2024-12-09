@@ -234,3 +234,23 @@ func NewFARMapUpdate(fars []*ie.IE) (*FARMap, error, uint8, uint16) {
 	return &f, nil, 0, 0
 
 }
+
+func (m *FARMap) IntoCreateFAR() []*ie.IE {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	r := make([]*ie.IE, len(m.farmap))
+	for i, far := range m.farmap {
+		r[i] = far.NewCreateFAR()
+	}
+	return r
+}
+
+func (m *FARMap) IntoUpdateFAR() []*ie.IE {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	r := make([]*ie.IE, len(m.farmap))
+	for i, far := range m.farmap {
+		r[i] = far.NewUpdateFAR()
+	}
+	return r
+}

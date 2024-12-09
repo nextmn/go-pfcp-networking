@@ -23,4 +23,5 @@ type PDRInterface interface {
 	UEIPAddress() (*ie.UEIPAddressFields, error)
 
 	NewCreatePDR() *ie.IE
+	NewUpdatePDR() *ie.IE
 }

@@ -16,4 +16,5 @@ type FARInterface interface {
 	ForwardingParameters() (*ie.IE, error)
 	SetForwardingParameters(*ie.IE) error
 	NewCreateFAR() *ie.IE
+	NewUpdateFAR() *ie.IE
 }

@@ -296,3 +296,31 @@ func NewPDRMap(pdrs []*ie.IE) (pdrmap *PDRMap, err error, cause uint8, offending
 	}
 	return &p, nil, 0, 0
 }
+
+func (m *PDRMap) IntoCreatePDR() []*ie.IE {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	r := make([]*ie.IE, len(m.pdrmap))
+
+	// _ is pdrID, which is different from index
+	i := 0
+	for _, pdr := range m.pdrmap {
+		r[i] = pdr.NewCreatePDR()
+		i++
+	}
+	return r
+}
+
+func (m *PDRMap) IntoUpdatePDR() []*ie.IE {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	r := make([]*ie.IE, len(m.pdrmap))
+
+	// _ is pdrID, which is different from index
+	i := 0
+	for _, pdr := range m.pdrmap {
+		r[i] = pdr.NewUpdatePDR()
+		i++
+	}
+	return r
+}

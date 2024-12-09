@@ -5,6 +5,10 @@
 
 package api
 
+import (
+	"github.com/wmnsk/go-pfcp/ie"
+)
+
 type FARMapInterface interface {
 	Get(key FARID) (FARInterface, error)
 	Add(far FARInterface) error
@@ -14,4 +18,6 @@ type FARMapInterface interface {
 	SimulateUpdate(far FARInterface) error
 	SimulateRemove(key FARID) error
 	Foreach(func(FARInterface) error) error
+	IntoCreateFAR() []*ie.IE
+	IntoUpdateFAR() []*ie.IE
 }

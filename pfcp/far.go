@@ -62,3 +62,13 @@ func (far *FAR) NewCreateFAR() *ie.IE {
 	}
 	return ie.NewCreateFAR(ies...)
 }
+
+func (far *FAR) NewUpdateFAR() *ie.IE {
+	ies := make([]*ie.IE, 0)
+	ies = append(ies, far.id)
+	ies = append(ies, far.applyAction)
+	if far.forwardingParameters != nil {
+		ies = append(ies, far.forwardingParameters)
+	}
+	return ie.NewUpdateFAR(ies...)
+}

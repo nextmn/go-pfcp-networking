@@ -229,9 +229,29 @@ func (s *PFCPSession) AddUpdatePDRsFARs(createpdrs api.PDRMapInterface, createfa
 	}); err != nil {
 		return err
 	}
-
+	if s.association.LocalEntity().IsUserPlane() {
+		return nil
+	}
+	if !s.association.LocalEntity().IsControlPlane() {
+		return fmt.Errorf("Local PFCP entity is not a CP or a UP function")
+	}
+	ies := make([]*ie.IE, 0)
+	ies = append(ies, s.association.LocalEntity().NodeID())
+	ies = append(ies, s.localFseid)
+	ies = append(ies, createpdrs.IntoCreatePDR()...)
+	ies = append(ies, updatepdrs.IntoUpdatePDR()...)
+	ies = append(ies, createfars.IntoCreateFAR()...)
+	ies = append(ies, updatefars.IntoUpdateFAR()...)
+	seid, err := s.remoteFseid.FSEID()
+	if err != nil {
+		return err
+	}
+	msg := message.NewSessionModificationRequest(0, 0, seid.SEID, 0, 0, ies...)
+	_, err = s.association.Send(msg)
+	if err != nil {
+		return err
+	}
 	return nil
-	// TODO: if isControlPlane() -> send the Session Modification Request
 }
 
 // Set the remote FSEID of a PFCPSession

@@ -63,7 +63,7 @@ func newPFCPPeer(srv api.PFCPEntityInterface, nodeID *ie.IE, kind string) (peer 
 
 	raddr := net.UDPAddrFromAddrPort(netip.AddrPortFrom(ips[0], pfcputil.PFCP_PORT))
 
-	conn, err := net.DialUDP("udp", nil, raddr)
+	conn, err := net.ListenUDP("udp", net.UDPAddrFromAddrPort(netip.AddrPortFrom(srv.ListenAddr(), 0)))
 	if err != nil {
 		return nil, err
 	}
@@ -112,9 +112,13 @@ func (peer *PFCPPeer) startLoop() {
 
 func (peer *PFCPPeer) loopUnwrapped() {
 	b := make([]byte, pfcputil.DEFAULT_MTU) // TODO: detect MTU for interface instead of using DEFAULT_MTU
-	n, _, err := peer.conn.ReadFromUDP(b)
+	n, addr, err := peer.conn.ReadFromUDP(b)
 	if err != nil {
 		// socket has been closed
+		return
+	}
+	if addr.String() != peer.udpAddr.String() {
+		// peer usurpated
 		return
 	}
 	// Processing of message in a new thread to avoid blocking

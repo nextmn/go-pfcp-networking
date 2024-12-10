@@ -6,10 +6,13 @@
 package api
 
 import (
+	"net/netip"
+
 	"github.com/wmnsk/go-pfcp/ie"
 )
 
 type PFCPEntityInterface interface {
+	ListenAddr() netip.Addr
 	IsUserPlane() bool
 	IsControlPlane() bool
 	NodeID() *ie.IE

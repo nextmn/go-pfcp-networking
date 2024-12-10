@@ -85,6 +85,10 @@ func (e *PFCPEntity) closePfcpConn() error {
 	return nil
 }
 
+func (e *PFCPEntity) ListenAddr() netip.Addr {
+	return e.listenAddr
+}
+
 func (e *PFCPEntity) Options() api.EntityOptionsInterface {
 	return e.options
 }

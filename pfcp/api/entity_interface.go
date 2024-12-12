@@ -6,6 +6,7 @@
 package api
 
 import (
+	"context"
 	"net/netip"
 
 	"github.com/wmnsk/go-pfcp/ie"
@@ -25,4 +26,5 @@ type PFCPEntityInterface interface {
 	AddEstablishedPFCPSession(session PFCPSessionInterface) error
 	LogPFCPRules()
 	Options() EntityOptionsInterface
+	WaitReady(ctx context.Context) error
 }

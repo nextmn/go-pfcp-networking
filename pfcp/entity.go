@@ -38,6 +38,9 @@ type PFCPEntity struct {
 	mu        sync.Mutex
 	pfcpConns []*onceClosePfcpConn
 	closeFunc context.CancelFunc
+
+	// check start
+	waitReady chan struct{}
 }
 
 // onceClosePfcpConn wraps a PfcpConn, protecting it from multiple Close calls.
@@ -133,6 +136,7 @@ func NewPFCPEntity(nodeID string, listenAddr netip.Addr, kind string, handlers m
 		kind:              kind,
 		options:           options,
 		pfcpConns:         nil,
+		waitReady:         make(chan struct{}),
 	}
 }
 
@@ -224,6 +228,16 @@ func (e *PFCPEntity) ListenAndServeContext(ctx context.Context) error {
 	}
 }
 
+// Blocks until the PFCPEntity is ready or context is done
+func (e *PFCPEntity) WaitReady(ctx context.Context) error {
+	select {
+	case <-e.waitReady:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
 // Run the entity with the provided context.
 // Always return a non-nil error and close the PFCPConn.
 func (e *PFCPEntity) Serve(ctx context.Context, conn *PFCPConn) error {
@@ -240,6 +254,7 @@ func (e *PFCPEntity) Serve(ctx context.Context, conn *PFCPConn) error {
 		select {
 		case <-serveCtx.Done():
 			// Stop signal received
+			close(e.waitReady)
 			return serveCtx.Err()
 		default:
 			buf := make([]byte, pfcputil.DEFAULT_MTU) // TODO: get MTU of interface instead of using DEFAULT_MTU

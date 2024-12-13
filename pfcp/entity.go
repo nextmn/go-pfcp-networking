@@ -250,11 +250,11 @@ func (e *PFCPEntity) Serve(ctx context.Context, conn *PFCPConn) error {
 	e.closeFunc = cancel
 	defer e.closePfcpConn()
 	e.recoveryTimeStamp = ie.NewRecoveryTimeStamp(time.Now())
+	close(e.waitReady)
 	for {
 		select {
 		case <-serveCtx.Done():
 			// Stop signal received
-			close(e.waitReady)
 			return serveCtx.Err()
 		default:
 			buf := make([]byte, pfcputil.DEFAULT_MTU) // TODO: get MTU of interface instead of using DEFAULT_MTU

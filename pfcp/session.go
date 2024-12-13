@@ -236,7 +236,6 @@ func (s *PFCPSession) AddUpdatePDRsFARs(createpdrs api.PDRMapInterface, createfa
 		return fmt.Errorf("Local PFCP entity is not a CP or a UP function")
 	}
 	ies := make([]*ie.IE, 0)
-	ies = append(ies, s.association.LocalEntity().NodeID())
 	ies = append(ies, s.localFseid)
 	ies = append(ies, createpdrs.IntoCreatePDR()...)
 	ies = append(ies, updatepdrs.IntoUpdatePDR()...)

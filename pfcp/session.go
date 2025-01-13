@@ -173,7 +173,7 @@ func (s *PFCPSession) GetFAR(farid api.FARID) (api.FARInterface, error) {
 }
 
 // Add/Update PDRs and FARs to the session
-func (s *PFCPSession) AddUpdatePDRsFARs(createpdrs api.PDRMapInterface, createfars api.FARMapInterface, updatepdrs api.PDRMapInterface, updatefars api.FARMapInterface) error {
+func (s *PFCPSession) AddUpdatePDRsFARs(createpdrs api.PDRMapInterface, createfars api.FARMapInterface, updatepdrs api.PDRMapInterface, updatefars api.FARMapUpdateInterface) error {
 	// Transactions must be atomic to avoid having a PDR referring to a deleted FAR / not yet created FAR
 	s.atomicMu.Lock()
 	defer s.atomicMu.Unlock()
@@ -186,7 +186,7 @@ func (s *PFCPSession) AddUpdatePDRsFARs(createpdrs api.PDRMapInterface, createfa
 	}); err != nil {
 		return err
 	}
-	if err := updatefars.Foreach(func(far api.FARInterface) error {
+	if err := updatefars.Foreach(func(far api.FARUpdateInterface) error {
 		return s.far.SimulateUpdate(far)
 	}); err != nil {
 		return err
@@ -212,7 +212,7 @@ func (s *PFCPSession) AddUpdatePDRsFARs(createpdrs api.PDRMapInterface, createfa
 	}); err != nil {
 		return err
 	}
-	if err := updatefars.Foreach(func(far api.FARInterface) error {
+	if err := updatefars.Foreach(func(far api.FARUpdateInterface) error {
 		return s.far.Update(far)
 	}); err != nil {
 		return err

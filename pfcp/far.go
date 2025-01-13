@@ -33,11 +33,6 @@ func (far *FAR) ApplyAction() *ie.IE {
 	return far.applyAction
 }
 
-func (far *FAR) SetApplyAction(aa *ie.IE) error {
-	far.applyAction = aa
-	return nil
-}
-
 func (far *FAR) ForwardingParameters() (*ie.IE, error) {
 	// This IE shall be present when the Apply Action requests
 	// the packets to be forwarded. It may be present otherwise.
@@ -46,11 +41,6 @@ func (far *FAR) ForwardingParameters() (*ie.IE, error) {
 	}
 	return far.forwardingParameters, nil
 
-}
-
-func (far *FAR) SetForwardingParameters(fp *ie.IE) error {
-	far.forwardingParameters = fp
-	return nil
 }
 
 func (far *FAR) NewCreateFAR() *ie.IE {
@@ -63,12 +53,45 @@ func (far *FAR) NewCreateFAR() *ie.IE {
 	return ie.NewCreateFAR(ies...)
 }
 
-func (far *FAR) NewUpdateFAR() *ie.IE {
-	ies := make([]*ie.IE, 0)
-	ies = append(ies, far.id)
-	ies = append(ies, far.applyAction)
-	if far.forwardingParameters != nil {
-		ies = append(ies, far.forwardingParameters)
+func (far *FAR) Update(farUpdate api.FARUpdateInterface) error {
+	// Check FARID
+	farUpdateId, err := farUpdate.ID()
+	if err != nil {
+		return err
 	}
-	return ie.NewUpdateFAR(ies...)
+	farId, err := far.ID()
+	if err != nil {
+		return err
+	}
+	if farId != farUpdateId {
+		return fmt.Errorf("Wrong FAR ID")
+	}
+
+	// Update ApplyAction
+	if aa := farUpdate.ApplyAction(); aa != nil {
+		far.applyAction = aa
+	}
+
+	// Update Forwarding Parameters
+	ForwParam := make([]*ie.IE, 0)
+	if fp := farUpdate.UpdateForwardingParameters(); fp != nil {
+		if di, err := fp.DestinationInterface(); err == nil {
+			ForwParam = append(ForwParam, ie.NewDestinationInterface(di))
+		} else if diorg, err := far.forwardingParameters.DestinationInterface(); err == nil {
+			ForwParam = append(ForwParam, ie.NewDestinationInterface(diorg))
+		}
+		if ni, err := fp.NetworkInstance(); err == nil {
+			ForwParam = append(ForwParam, ie.NewNetworkInstance(ni))
+		} else if niorg, err := far.forwardingParameters.NetworkInstance(); err == nil {
+			ForwParam = append(ForwParam, ie.NewNetworkInstance(niorg))
+		}
+		if ohc, err := fp.OuterHeaderCreation(); err == nil {
+			ForwParam = append(ForwParam, ie.NewOuterHeaderCreation(ohc.OuterHeaderCreationDescription, ohc.TEID, ohc.IPv4Address.String(), ohc.IPv6Address.String(), ohc.PortNumber, ohc.CTag, ohc.STag))
+		} else if ohcorg, err := far.forwardingParameters.OuterHeaderCreation(); err == nil {
+			ForwParam = append(ForwParam, ie.NewOuterHeaderCreation(ohcorg.OuterHeaderCreationDescription, ohcorg.TEID, ohcorg.IPv4Address.String(), ohcorg.IPv6Address.String(), ohcorg.PortNumber, ohcorg.CTag, ohcorg.STag))
+		}
+		far.forwardingParameters = ie.NewForwardingParameters(ForwParam...)
+	}
+
+	return nil
 }

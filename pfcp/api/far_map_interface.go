@@ -12,12 +12,11 @@ import (
 type FARMapInterface interface {
 	Get(key FARID) (FARInterface, error)
 	Add(far FARInterface) error
-	Update(far FARInterface) error
+	Update(far FARUpdateInterface) error
 	Remove(key FARID) error
 	SimulateAdd(far FARInterface) error
-	SimulateUpdate(far FARInterface) error
+	SimulateUpdate(far FARUpdateInterface) error
 	SimulateRemove(key FARID) error
 	Foreach(func(FARInterface) error) error
 	IntoCreateFAR() []*ie.IE
-	IntoUpdateFAR() []*ie.IE
 }

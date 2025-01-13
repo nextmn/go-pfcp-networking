@@ -68,41 +68,25 @@ func (m *FARMap) SimulateAdd(far api.FARInterface) error {
 	return nil
 }
 
-func (m *FARMap) Update(far api.FARInterface) error {
+func (m *FARMap) Update(farUpdate api.FARUpdateInterface) error {
 	logrus.Trace("Inside farmap.Update()")
 	// only present fields are replaced
-	id, err := far.ID()
+	id, err := farUpdate.ID()
 	if err != nil {
 		return err
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if _, exists := m.farmap[id]; !exists {
+	if far, exists := m.farmap[id]; !exists {
 		logrus.WithFields(logrus.Fields{"far-id": id, "current_map": m.farmap}).Trace("Updating FAR: this FAR id does not exist")
 		return fmt.Errorf("FAR %d does not exist.", id)
 	} else {
 		logrus.WithFields(logrus.Fields{"far-id": id}).Trace("Updating FAR")
-		if far.ApplyAction() != nil {
-			m.farmap[id].SetApplyAction(far.ApplyAction())
-			logrus.WithFields(logrus.Fields{"far-id": id}).Trace("Updating FAR Apply Action")
-		}
-		// XXX: update fields in forwarding parameters instead of replacing
-		if fp, err := far.ForwardingParameters(); err == nil {
-			if fp == nil {
-				logrus.Warn("Removing forwarding parameters. aborting")
-				return nil
-			}
-			m.farmap[id].SetForwardingParameters(fp)
-			logrus.WithFields(logrus.Fields{"far-id": id}).Trace("Updating FAR Forwarding Parameters")
-		} else {
-			logrus.WithFields(logrus.Fields{"far-id": id}).Trace("Updating FAR but not Forwarding Parameters")
-		}
-
-		return nil
+		return far.Update(farUpdate)
 	}
 }
 
-func (m *FARMap) SimulateUpdate(far api.FARInterface) error {
+func (m *FARMap) SimulateUpdate(far api.FARUpdateInterface) error {
 	logrus.Trace("Inside farmap.SimulateUpdate()")
 	id, err := far.ID()
 	if err != nil {
@@ -202,39 +186,6 @@ func NewFARMap(fars []*ie.IE) (farmap *FARMap, err error, cause uint8, offending
 
 }
 
-func NewFARMapUpdate(fars []*ie.IE) (*FARMap, error, uint8, uint16) {
-	f := FARMap{
-		farmap: make(farmapInternal),
-		mu:     sync.RWMutex{},
-	}
-	for _, far := range fars {
-		id, err := far.FARID()
-		if err != nil {
-			switch err {
-			case io.ErrUnexpectedEOF:
-				return nil, err, ie.CauseInvalidLength, ie.FARID
-			case ie.ErrIENotFound:
-				return nil, err, ie.CauseMandatoryIEMissing, ie.FARID
-			default:
-				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreateFAR
-			}
-		}
-		var ieaa *ie.IE = nil
-		aa, err := far.ApplyAction()
-		if err == nil {
-			ieaa = ie.NewApplyAction(aa...)
-		}
-		var iefp *ie.IE = nil
-		fp, err := far.UpdateForwardingParameters()
-		if err == nil {
-			iefp = ie.NewForwardingParameters(fp...)
-		}
-		f.Add(NewFAR(ie.NewFARID(id), ieaa, iefp))
-	}
-	return &f, nil, 0, 0
-
-}
-
 func (m *FARMap) IntoCreateFAR() []*ie.IE {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -244,20 +195,6 @@ func (m *FARMap) IntoCreateFAR() []*ie.IE {
 	i := 0
 	for _, far := range m.farmap {
 		r[i] = far.NewCreateFAR()
-		i++
-	}
-	return r
-}
-
-func (m *FARMap) IntoUpdateFAR() []*ie.IE {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	r := make([]*ie.IE, len(m.farmap))
-
-	// _ is farID, which is different from index
-	i := 0
-	for _, far := range m.farmap {
-		r[i] = far.NewUpdateFAR()
 		i++
 	}
 	return r

@@ -21,7 +21,7 @@ type PFCPSessionInterface interface {
 	GetSortedPDRIDs() []PDRID
 	GetPDR(pdrid PDRID) (PDRInterface, error)
 	GetFAR(farid FARID) (FARInterface, error)
-	AddUpdatePDRsFARs(createpdrs PDRMapInterface, createfars FARMapInterface, updatepdr PDRMapInterface, updatefars FARMapInterface) error
+	AddUpdatePDRsFARs(createpdrs PDRMapInterface, createfars FARMapInterface, updatepdr PDRMapInterface, updatefars FARMapUpdateInterface) error
 	//	SetRemoteFSEID(FSEID *ie.IE)
 	Setup() error
 	ForeachUnsortedPDR(f func(pdr PDRInterface) error) error

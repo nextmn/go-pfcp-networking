@@ -33,7 +33,7 @@ session, _ := a.CreateSession(pdrs, fars)
 ```
 
 ## Author
-Louis Royer
+Louis Royer and the NextMN Contributors
 
 ## License
 MIT

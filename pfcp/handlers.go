@@ -115,13 +115,13 @@ func DefaultSessionEstablishmentRequestHandler(ctx context.Context, msg Received
 	}
 
 	// CreatePDR is a Mandatory IE
-	if m.CreatePDR == nil || len(m.CreatePDR) == 0 {
+	if len(m.CreatePDR) == 0 {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreatePDR))
 		return msg.NewResponse(res)
 	}
 
 	// CreateFAR is a Mandatory IE
-	if m.CreateFAR == nil || len(m.CreateFAR) == 0 {
+	if len(m.CreateFAR) == 0 {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseMandatoryIEMissing), ie.NewOffendingIE(ie.CreateFAR))
 		return msg.NewResponse(res)
 	}

@@ -59,7 +59,7 @@ func (association *PFCPAssociation) GetNextSEID() api.SEID {
 // function and the UP function may additionally support the PFCP Association Setup initiated by the UP function.
 func (association *PFCPAssociation) SetupInitiatedByCP() error {
 	if association.isSetup {
-		return fmt.Errorf("Association is already set up")
+		return fmt.Errorf("association is already set up")
 	}
 	switch {
 	case association.LocalEntity().IsUserPlane():
@@ -86,9 +86,9 @@ func (association *PFCPAssociation) SetupInitiatedByCP() error {
 			go association.heartMonitoring()
 			return nil
 		}
-		return fmt.Errorf("Association setup request rejected")
+		return fmt.Errorf("association setup request rejected")
 	default:
-		return fmt.Errorf("Local PFCP entity is not a UP function, neither a CP function.")
+		return fmt.Errorf("local PFCP entity is not a UP function, neither a CP function")
 	}
 }
 
@@ -141,7 +141,7 @@ func (association *PFCPAssociation) getFSEID(seid api.SEID) (*ie.IE, error) {
 		ip4, err4 := net.ResolveIPAddr("ip4", nodeID)
 		ip6, err6 := net.ResolveIPAddr("ip6", nodeID)
 		if err4 != nil && err6 != nil {
-			return nil, fmt.Errorf("Cannot resolve NodeID")
+			return nil, fmt.Errorf("cannot resolve NodeID")
 		}
 		switch {
 		case err4 == nil && err6 == nil:
@@ -151,7 +151,7 @@ func (association *PFCPAssociation) getFSEID(seid api.SEID) (*ie.IE, error) {
 		case err4 != nil && err6 == nil:
 			localFseid = ie.NewFSEID(seid, nil, ip6.IP.To16())
 		case err4 != nil && err6 != nil:
-			return nil, fmt.Errorf("Cannot resolve NodeID")
+			return nil, fmt.Errorf("cannot resolve NodeID")
 		}
 	}
 	return localFseid, nil
@@ -176,7 +176,7 @@ func (association *PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs api.P
 // Safe function to create FSEID
 func NewFSEID(seid api.SEID, v4, v6 *net.IPAddr) (*ie.IE, error) {
 	if v4 == nil && v6 == nil {
-		return nil, fmt.Errorf("Cannot create FSEID with no IP Address")
+		return nil, fmt.Errorf("cannot create FSEID with no IP Address")
 	}
 	var ip4, ip6 net.IP
 	if v4 != nil {

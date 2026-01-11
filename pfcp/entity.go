@@ -144,15 +144,15 @@ func (e *PFCPEntity) GetHandler(t pfcputil.MessageType) (h PFCPMessageHandler, e
 	if f, exists := e.handlers[t]; exists {
 		return f, nil
 	}
-	return nil, fmt.Errorf("Received unexpected PFCP message type")
+	return nil, fmt.Errorf("received unexpected PFCP message type")
 }
 
 func (e *PFCPEntity) AddHandler(t pfcputil.MessageType, h PFCPMessageHandler) error {
 	if e.RecoveryTimeStamp() != nil {
-		return fmt.Errorf("Cannot add handler to already started PFCP Entity")
+		return fmt.Errorf("cannot add handler to already started PFCP Entity")
 	}
 	if !pfcputil.IsMessageTypeRequest(t) {
-		return fmt.Errorf("Only request messages can have a handler")
+		return fmt.Errorf("only request messages can have a handler")
 	}
 	e.handlers[t] = h
 	return nil
@@ -160,11 +160,11 @@ func (e *PFCPEntity) AddHandler(t pfcputil.MessageType, h PFCPMessageHandler) er
 
 func (e *PFCPEntity) AddHandlers(funcs map[pfcputil.MessageType]PFCPMessageHandler) error {
 	if e.RecoveryTimeStamp() != nil {
-		return fmt.Errorf("Cannot add handler to already started PFCP Entity")
+		return fmt.Errorf("cannot add handler to already started PFCP Entity")
 	}
 	for t := range funcs {
 		if !pfcputil.IsMessageTypeRequest(t) {
-			return fmt.Errorf("Only request messages can have a handler")
+			return fmt.Errorf("only request messages can have a handler")
 		}
 	}
 
@@ -190,14 +190,14 @@ func (e *PFCPEntity) NewEstablishedPFCPAssociation(nodeID *ie.IE) (association a
 		return nil, err
 	}
 	if e.RecoveryTimeStamp() == nil {
-		return nil, fmt.Errorf("Local PFCP entity is not started")
+		return nil, fmt.Errorf("local PFCP entity is not started")
 	}
 	nid, err := nodeID.NodeID()
 	if err != nil {
 		return nil, err
 	}
 	if !e.associationsMap.CheckNonExist(nid) {
-		return nil, fmt.Errorf("Association already exists")
+		return nil, fmt.Errorf("association already exists")
 	}
 	a, err := peer.NewEstablishedPFCPAssociation()
 	if err != nil {
@@ -224,7 +224,7 @@ func (e *PFCPEntity) ListenAndServeContext(ctx context.Context) error {
 		return err
 	} else {
 		e.Serve(ctx, conn)
-		return fmt.Errorf("Server closed")
+		return fmt.Errorf("server closed")
 	}
 }
 
@@ -242,7 +242,7 @@ func (e *PFCPEntity) WaitReady(ctx context.Context) error {
 // Always return a non-nil error and close the PFCPConn.
 func (e *PFCPEntity) Serve(ctx context.Context, conn *PFCPConn) error {
 	if conn == nil {
-		return fmt.Errorf("Conn is nil")
+		return fmt.Errorf("conn is nil")
 	}
 	newconn := &onceClosePfcpConn{PFCPConn: conn}
 	e.registerPfcpConn(newconn)

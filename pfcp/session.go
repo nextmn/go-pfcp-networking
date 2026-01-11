@@ -109,7 +109,7 @@ func (s *PFCPSession) LocalIPAddress() (net.IP, error) {
 	case fseid.HasIPv4():
 		return fseid.IPv4Address, nil
 	default:
-		return nil, fmt.Errorf("Local IP Address not set")
+		return nil, fmt.Errorf("local IP Address not set")
 	}
 }
 
@@ -143,7 +143,7 @@ func (s *PFCPSession) RemoteIPAddress() (net.IP, error) {
 	case fseid.HasIPv4():
 		return fseid.IPv4Address, nil
 	default:
-		return nil, fmt.Errorf("Remote IP Address not set")
+		return nil, fmt.Errorf("remote IP Address not set")
 	}
 }
 
@@ -233,7 +233,7 @@ func (s *PFCPSession) AddUpdatePDRsFARs(createpdrs api.PDRMapInterface, createfa
 		return nil
 	}
 	if !s.association.LocalEntity().IsControlPlane() {
-		return fmt.Errorf("Local PFCP entity is not a CP or a UP function")
+		return fmt.Errorf("local PFCP entity is not a CP or a UP function")
 	}
 	ies := make([]*ie.IE, 0)
 	ies = append(ies, s.localFseid)
@@ -267,7 +267,7 @@ func (s *PFCPSession) AddUpdatePDRsFARs(createpdrs api.PDRMapInterface, createfa
 // the PFCP Session Establishment Procedure is already performed
 func (s *PFCPSession) Setup() error {
 	if s.isEstablished {
-		return fmt.Errorf("Session is already establihed")
+		return fmt.Errorf("session is already established")
 	}
 	switch {
 	case s.association.LocalEntity().IsUserPlane():
@@ -307,7 +307,7 @@ func (s *PFCPSession) Setup() error {
 		s.isEstablished = true
 		return nil
 	default:
-		return fmt.Errorf("Local PFCP entity is not a CP or a UP function")
+		return fmt.Errorf("local PFCP entity is not a CP or a UP function")
 	}
 	return nil
 }

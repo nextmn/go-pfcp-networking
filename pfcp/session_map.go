@@ -72,9 +72,9 @@ func (sm *SessionsMap) GetPFCPSession(localIP string, seid api.SEID) (api.PFCPSe
 		if session, sessionexists := sessions[seid]; sessionexists {
 			return session, nil
 		} else {
-			return nil, fmt.Errorf("Session not found: wrong SEID")
+			return nil, fmt.Errorf("session not found: wrong SEID")
 		}
 	} else {
-		return nil, fmt.Errorf("Session not found: wrong IP")
+		return nil, fmt.Errorf("session not found: wrong IP")
 	}
 }

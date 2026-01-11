@@ -63,7 +63,7 @@ func (m *FARMapUpdate) Add(far api.FARUpdateInterface) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if _, exists := m.farmap[id]; exists {
-		return fmt.Errorf("FAR %d already exists.", id)
+		return fmt.Errorf("FAR %d already exists", id)
 	}
 	m.farmap[id] = far
 	return nil

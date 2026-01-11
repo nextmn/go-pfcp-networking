@@ -207,7 +207,7 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 	}
 
 	if !pfcputil.IsMessageTypeRequest(h.MessageType()) {
-		return nil, fmt.Errorf("Unexpected outcomming PFCP message type")
+		return nil, fmt.Errorf("unexpected outcomming PFCP message type")
 	}
 	sn := peer.getNextSequenceNumber()
 	h.SetSequenceNumber(sn)
@@ -222,7 +222,7 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 
 	_, err = peer.conn.WriteToUDP(b, peer.udpAddr)
 	if err != nil {
-		return nil, fmt.Errorf("Error on write: %s\n", err)
+		return nil, fmt.Errorf("error on write: %w", err)
 	}
 
 	for i := 0; i < peer.LocalEntity().Options().MessageRetransmissionN1(); i++ {
@@ -236,17 +236,17 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 		case r := <-ch:
 			msg, err := message.Parse(r)
 			if err != nil {
-				return nil, fmt.Errorf("Unexpected incomming packet")
+				return nil, fmt.Errorf("unexpected incomming packet")
 			}
 			if !pfcputil.IsMessageTypeResponse(msg.MessageType()) {
-				return nil, fmt.Errorf("Unexpected incomming PFCP message type")
+				return nil, fmt.Errorf("unexpected incomming PFCP message type")
 			}
 			return msg, nil
 		case <-time.After(peer.LocalEntity().Options().MessageRetransmissionT1()):
 			// retry
 			_, err = peer.conn.WriteToUDP(b, peer.udpAddr)
 			if err != nil {
-				return nil, fmt.Errorf("Error on write: %s\n", err)
+				return nil, fmt.Errorf("error on write: %w", err)
 			}
 		}
 	}
@@ -255,13 +255,13 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 		"t1": peer.LocalEntity().Options().MessageRetransmissionT1(),
 		"n1": peer.LocalEntity().Options().MessageRetransmissionN1(),
 	}).Trace("No response to PFCP request")
-	return nil, fmt.Errorf("Unsuccessful transfer of Request message")
+	return nil, fmt.Errorf("unsuccessful transfer of Request message")
 }
 
 // Send an Heartbeat request, return true if the PFCP peer is alive.
 func (peer *PFCPPeer) IsAlive() (res bool, err error) {
 	if peer.LocalEntity().RecoveryTimeStamp() == nil {
-		return false, fmt.Errorf("Local PFCP Entity is not yet started.")
+		return false, fmt.Errorf("local PFCP Entity is not yet started")
 	}
 	hreq := message.NewHeartbeatRequest(
 		0,

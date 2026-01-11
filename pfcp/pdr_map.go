@@ -120,7 +120,7 @@ func (m *PDRMap) Get(key api.PDRID) (api.PDRInterface, error) {
 	if pdr, exists := m.pdrmap[key]; exists {
 		return pdr, nil
 	}
-	return nil, fmt.Errorf("PDR %d does not exist.", key)
+	return nil, fmt.Errorf("PDR %d does not exist", key)
 
 }
 func (m *PDRMap) Add(pdr api.PDRInterface) error {
@@ -131,7 +131,7 @@ func (m *PDRMap) Add(pdr api.PDRInterface) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if _, exists := m.pdrmap[id]; exists {
-		return fmt.Errorf("PDR %d already exists.", id)
+		return fmt.Errorf("PDR %d already exists", id)
 	}
 	if m.isUpdated {
 		// keep the array updated (but not sorted)
@@ -152,7 +152,7 @@ func (m *PDRMap) SimulateAdd(pdr api.PDRInterface) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if _, exists := m.pdrmap[id]; exists {
-		return fmt.Errorf("PDR %d already exists.", id)
+		return fmt.Errorf("PDR %d already exists", id)
 	}
 	return nil
 }
@@ -167,7 +167,7 @@ func (m *PDRMap) Update(pdr api.PDRInterface) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if _, exists := m.pdrmap[id]; !exists {
-		return fmt.Errorf("PDR %d does not exist.", id)
+		return fmt.Errorf("PDR %d does not exist", id)
 	} else {
 		delete(m.pdrmap, id)
 		m.muArray.Lock()
@@ -187,7 +187,7 @@ func (m *PDRMap) SimulateUpdate(pdr api.PDRInterface) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if _, exists := m.pdrmap[id]; !exists {
-		return fmt.Errorf("PDR %d does not exist.", id)
+		return fmt.Errorf("PDR %d does not exist", id)
 	}
 	return nil
 }
@@ -196,7 +196,7 @@ func (m *PDRMap) Remove(key api.PDRID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if _, exists := m.pdrmap[key]; !exists {
-		return fmt.Errorf("PDR %d does not exist.", key)
+		return fmt.Errorf("PDR %d does not exist", key)
 	} else {
 		delete(m.pdrmap, key)
 		m.muArray.Lock()
@@ -210,7 +210,7 @@ func (m *PDRMap) SimulateRemove(key api.PDRID) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if _, exists := m.pdrmap[key]; !exists {
-		return fmt.Errorf("PDR %d does not exist.", key)
+		return fmt.Errorf("PDR %d does not exist", key)
 	}
 	return nil
 }

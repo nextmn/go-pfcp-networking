@@ -38,7 +38,7 @@ func (m *FARMap) Get(key api.FARID) (api.FARInterface, error) {
 	if far, exists := m.farmap[key]; exists {
 		return far, nil
 	}
-	return nil, fmt.Errorf("FAR %d does not exist.", key)
+	return nil, fmt.Errorf("FAR %d does not exist", key)
 }
 
 func (m *FARMap) Add(far api.FARInterface) error {
@@ -49,7 +49,7 @@ func (m *FARMap) Add(far api.FARInterface) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if _, exists := m.farmap[id]; exists {
-		return fmt.Errorf("FAR %d already exists.", id)
+		return fmt.Errorf("FAR %d already exists", id)
 	}
 	m.farmap[id] = far
 	return nil
@@ -63,7 +63,7 @@ func (m *FARMap) SimulateAdd(far api.FARInterface) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if _, exists := m.farmap[id]; exists {
-		return fmt.Errorf("FAR %d already exists.", id)
+		return fmt.Errorf("FAR %d already exists", id)
 	}
 	return nil
 }
@@ -79,7 +79,7 @@ func (m *FARMap) Update(farUpdate api.FARUpdateInterface) error {
 	defer m.mu.Unlock()
 	if far, exists := m.farmap[id]; !exists {
 		logrus.WithFields(logrus.Fields{"far-id": id, "current_map": m.farmap}).Trace("Updating FAR: this FAR id does not exist")
-		return fmt.Errorf("FAR %d does not exist.", id)
+		return fmt.Errorf("FAR %d does not exist", id)
 	} else {
 		logrus.WithFields(logrus.Fields{"far-id": id}).Trace("Updating FAR")
 		return far.Update(farUpdate)
@@ -96,7 +96,7 @@ func (m *FARMap) SimulateUpdate(far api.FARUpdateInterface) error {
 	defer m.mu.RUnlock()
 	if _, exists := m.farmap[id]; !exists {
 		logrus.WithFields(logrus.Fields{"far-id": id, "current_map": m.farmap}).Trace("Simulate Updating FAR: this FAR id does not exist")
-		return fmt.Errorf("FAR %d does not exist.", id)
+		return fmt.Errorf("FAR %d does not exist", id)
 	}
 	logrus.WithFields(logrus.Fields{"far-id": id, "current_map": m.farmap}).Trace("Simulate Updating FAR: exist")
 	return nil
@@ -105,7 +105,7 @@ func (m *FARMap) Remove(key api.FARID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if _, exists := m.farmap[key]; !exists {
-		return fmt.Errorf("FAR %d does not exist.", key)
+		return fmt.Errorf("FAR %d does not exist", key)
 	} else {
 		delete(m.farmap, key)
 		return nil
@@ -115,7 +115,7 @@ func (m *FARMap) SimulateRemove(key api.FARID) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if _, exists := m.farmap[key]; !exists {
-		return fmt.Errorf("FAR %d does not exist.", key)
+		return fmt.Errorf("FAR %d does not exist", key)
 	}
 	return nil
 }

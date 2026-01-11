@@ -29,7 +29,7 @@ func DefaultAssociationSetupRequestHandler(ctx context.Context, msg ReceivedMess
 	logrus.Debug("Received Association Setup Request")
 	m, ok := msg.Message.(*message.AssociationSetupRequest)
 	if !ok {
-		return nil, fmt.Errorf("Issue with Association Setup Request")
+		return nil, fmt.Errorf("issue with Association Setup Request")
 	}
 	switch {
 	case msg.Message == nil:
@@ -57,7 +57,7 @@ func DefaultSessionEstablishmentRequestHandler(ctx context.Context, msg Received
 	logrus.Debug("Received Session Establishment Request")
 	m, ok := msg.Message.(*message.SessionEstablishmentRequest)
 	if !ok {
-		return nil, fmt.Errorf("Issue with Session Establishment Request")
+		return nil, fmt.Errorf("issue with Session Establishment Request")
 	}
 
 	// If F-SEID is missing or malformed, SEID shall be set to 0
@@ -158,7 +158,7 @@ func DefaultSessionModificationRequestHandler(ctx context.Context, msg ReceivedM
 	logrus.Debug("Received Session Modification Request")
 	m, ok := msg.Message.(*message.SessionModificationRequest)
 	if !ok {
-		return nil, fmt.Errorf("Issue with Session Modification Request")
+		return nil, fmt.Errorf("issue with Session Modification Request")
 	}
 	// PFCP session related messages for sessions that are already established are sent to the IP address received
 	// in the F-SEID allocated by the peer function or to the IP address of an alternative SMF in the SMF set
@@ -196,7 +196,7 @@ func DefaultSessionModificationRequestHandler(ctx context.Context, msg ReceivedM
 		case ip4 != nil:
 			localip = ip4.String()
 		default:
-			return nil, fmt.Errorf("Cannot resolve NodeID")
+			return nil, fmt.Errorf("cannot resolve NodeID")
 		}
 	}
 	localseid := msg.SEID()
@@ -275,5 +275,5 @@ func checkSenderAssociation(entity api.PFCPEntityInterface, senderAddr net.Addr)
 	if err == nil {
 		return association, nil
 	}
-	return nil, fmt.Errorf("Entity with NodeID '%s' is has no active association", nid)
+	return nil, fmt.Errorf("entity with NodeID '%s' is has no active association", nid)
 }

@@ -37,7 +37,7 @@ func (far *FAR) ForwardingParameters() (*ie.IE, error) {
 	// This IE shall be present when the Apply Action requests
 	// the packets to be forwarded. It may be present otherwise.
 	if far.forwardingParameters == nil {
-		return nil, fmt.Errorf("No forwarding parameters ie")
+		return nil, fmt.Errorf("no forwarding parameters ie")
 	}
 	return far.forwardingParameters, nil
 
@@ -64,7 +64,7 @@ func (far *FAR) Update(farUpdate api.FARUpdateInterface) error {
 		return err
 	}
 	if farId != farUpdateId {
-		return fmt.Errorf("Wrong FAR ID")
+		return fmt.Errorf("wrong FAR ID")
 	}
 
 	// Update ApplyAction

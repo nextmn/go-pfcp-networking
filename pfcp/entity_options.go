@@ -34,7 +34,7 @@ func (eo EntityOptions) MessageRetransmissionT1() time.Duration {
 
 func (eo EntityOptions) SetMessageRetransmissionT1(messageRetransmissionT1 time.Duration) error {
 	if messageRetransmissionT1 < 1*time.Microsecond {
-		return fmt.Errorf("messageRetransmissionT1 must be strictly greater than zero.")
+		return fmt.Errorf("messageRetransmissionT1 must be strictly greater than zero")
 	}
 	eo.messageRetransmissionT1 = messageRetransmissionT1
 	return nil

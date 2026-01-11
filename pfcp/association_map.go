@@ -45,7 +45,7 @@ func (a *AssociationsMap) Add(association api.PFCPAssociationInterface) error {
 	}
 	if _, exists := a.associations[nid]; exists {
 		// Only one association shall be setup between given pair of CP and UP functions.
-		return fmt.Errorf("Association already exist.")
+		return fmt.Errorf("association already exist")
 	}
 	a.muAssociations.Lock()
 	defer a.muAssociations.Unlock()
@@ -70,7 +70,7 @@ func (a *AssociationsMap) Get(nid string) (association api.PFCPAssociationInterf
 	if asso, exists := a.associations[nid]; exists {
 		return asso, nil
 	}
-	return nil, fmt.Errorf("Association does not exist.")
+	return nil, fmt.Errorf("association does not exist")
 }
 
 // Update a Association

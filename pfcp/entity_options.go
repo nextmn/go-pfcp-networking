@@ -32,7 +32,7 @@ func (eo EntityOptions) MessageRetransmissionT1() time.Duration {
 	return eo.messageRetransmissionT1
 }
 
-func (eo EntityOptions) SetMessageRetransmissionT1(messageRetransmissionT1 time.Duration) error {
+func (eo *EntityOptions) SetMessageRetransmissionT1(messageRetransmissionT1 time.Duration) error {
 	if messageRetransmissionT1 < 1*time.Microsecond {
 		return fmt.Errorf("messageRetransmissionT1 must be strictly greater than zero")
 	}
@@ -47,7 +47,7 @@ func (eo EntityOptions) MessageRetransmissionN1() int {
 	return eo.messageRetransmissionN1
 }
 
-func (eo EntityOptions) SetMessageRetransmissionN1(messageRetransmissionN1 int) error {
+func (eo *EntityOptions) SetMessageRetransmissionN1(messageRetransmissionN1 int) error {
 	if messageRetransmissionN1 < 0 {
 		return fmt.Errorf("messageRetransmissionN1 must be greater than zero")
 	}

@@ -6,13 +6,15 @@
 package api
 
 import (
+	"context"
+
 	"github.com/wmnsk/go-pfcp/ie"
 )
 
 type SEID = uint64
 type PFCPAssociationInterface interface {
 	PFCPPeerInterface
-	SetupInitiatedByCP() error
+	SetupInitiatedByCP(ctx context.Context) error
 	GetNextSEID() SEID
-	CreateSession(remoteFseid *ie.IE, pdrs PDRMapInterface, fars FARMapInterface) (session PFCPSessionInterface, err error)
+	CreateSession(ctx context.Context, remoteFseid *ie.IE, pdrs PDRMapInterface, fars FARMapInterface) (session PFCPSessionInterface, err error)
 }

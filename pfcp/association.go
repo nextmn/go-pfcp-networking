@@ -6,6 +6,7 @@
 package pfcp_networking
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"time"
@@ -23,14 +24,13 @@ type PFCPAssociation struct {
 }
 
 // Create a new PFCPAssociation, this association is already set-up
-func newEstablishedPFCPAssociation(peer api.PFCPPeerInterface) (api.PFCPAssociationInterface, error) {
+func newEstablishedPFCPAssociation(ctx context.Context, peer api.PFCPPeerInterface) (api.PFCPAssociationInterface, error) {
 	association := PFCPAssociation{
 		PFCPPeerInterface: peer,
 		isSetup:           false,
 		sessionIDPool:     NewSessionIDPool(),
 	}
-	err := association.SetupInitiatedByCP()
-	if err != nil {
+	if err := association.SetupInitiatedByCP(ctx); err != nil {
 		return nil, err
 	}
 	return &association, nil
@@ -57,14 +57,14 @@ func (association *PFCPAssociation) GetNextSEID() api.SEID {
 // clause 6.2.6.3).
 // The CP function and the UP function shall support the PFCP Association Setup initiated by the CP function. The CP
 // function and the UP function may additionally support the PFCP Association Setup initiated by the UP function.
-func (association *PFCPAssociation) SetupInitiatedByCP() error {
+func (association *PFCPAssociation) SetupInitiatedByCP(ctx context.Context) error {
 	if association.isSetup {
 		return fmt.Errorf("association is already set up")
 	}
 	switch {
 	case association.LocalEntity().IsUserPlane():
 		association.isSetup = true
-		go association.heartMonitoring()
+		go association.heartMonitoring(ctx)
 		return nil
 	case association.LocalEntity().IsControlPlane():
 		sar := message.NewAssociationSetupRequest(0, association.LocalEntity().NodeID(), association.LocalEntity().RecoveryTimeStamp())
@@ -83,7 +83,7 @@ func (association *PFCPAssociation) SetupInitiatedByCP() error {
 		}
 		if cause == ie.CauseRequestAccepted {
 			association.isSetup = true
-			go association.heartMonitoring()
+			go association.heartMonitoring(ctx)
 			return nil
 		}
 		return fmt.Errorf("association setup request rejected")
@@ -93,7 +93,7 @@ func (association *PFCPAssociation) SetupInitiatedByCP() error {
 }
 
 // Start monitoring heart of a PFCP Association
-func (association *PFCPAssociation) heartMonitoring() error {
+func (association *PFCPAssociation) heartMonitoring(ctx context.Context) error {
 	defer association.Close()
 	checkInterval := 30 * time.Second
 	for {
@@ -106,6 +106,8 @@ func (association *PFCPAssociation) heartMonitoring() error {
 			if err != nil {
 				return err
 			}
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }
@@ -158,7 +160,7 @@ func (association *PFCPAssociation) getFSEID(seid api.SEID) (*ie.IE, error) {
 }
 
 // remoteFseid can be nil if caller is at CP function side
-func (association *PFCPAssociation) CreateSession(remoteFseid *ie.IE, pdrs api.PDRMapInterface, fars api.FARMapInterface) (session api.PFCPSessionInterface, err error) {
+func (association *PFCPAssociation) CreateSession(ctx context.Context, remoteFseid *ie.IE, pdrs api.PDRMapInterface, fars api.FARMapInterface) (session api.PFCPSessionInterface, err error) {
 	// Generation of the F-SEID
 	localSEID := association.GetNextSEID()
 	localFseid, err := association.getFSEID(localSEID)

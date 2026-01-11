@@ -215,7 +215,7 @@ func (m *PDRMap) SimulateRemove(key api.PDRID) error {
 	return nil
 }
 
-func NewPDRMap(pdrs []*ie.IE) (pdrmap *PDRMap, err error, cause uint8, offendingIE uint16) {
+func NewPDRMap(pdrs []*ie.IE) (pdrmap *PDRMap, cause uint8, offendingIE uint16, err error) {
 	p := PDRMap{
 		pdrmap:    make(pdrmapInternal),
 		mu:        sync.RWMutex{},
@@ -229,44 +229,44 @@ func NewPDRMap(pdrs []*ie.IE) (pdrmap *PDRMap, err error, cause uint8, offending
 		if err != nil {
 			switch err {
 			case io.ErrUnexpectedEOF:
-				return nil, err, ie.CauseInvalidLength, ie.PDRID
+				return nil, ie.CauseInvalidLength, ie.PDRID, err
 			case ie.ErrIENotFound:
-				return nil, err, ie.CauseMandatoryIEMissing, ie.PDRID
+				return nil, ie.CauseMandatoryIEMissing, ie.PDRID, err
 			default:
-				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreatePDR
+				return nil, ie.CauseMandatoryIEIncorrect, ie.CreatePDR, err
 			}
 		}
 		pdi, err := pdr.PDI()
 		if err != nil {
 			switch err {
 			case io.ErrUnexpectedEOF:
-				return nil, err, ie.CauseInvalidLength, ie.PDI
+				return nil, ie.CauseInvalidLength, ie.PDI, err
 			case ie.ErrIENotFound:
-				return nil, err, ie.CauseMandatoryIEMissing, ie.PDI
+				return nil, ie.CauseMandatoryIEMissing, ie.PDI, err
 			default:
-				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreatePDR
+				return nil, ie.CauseMandatoryIEIncorrect, ie.CreatePDR, err
 			}
 		}
 		precedence, err := pdr.Precedence()
 		if err != nil {
 			switch err {
 			case io.ErrUnexpectedEOF:
-				return nil, err, ie.CauseInvalidLength, ie.Precedence
+				return nil, ie.CauseInvalidLength, ie.Precedence, err
 			case ie.ErrIENotFound:
-				return nil, err, ie.CauseMandatoryIEMissing, ie.Precedence
+				return nil, ie.CauseMandatoryIEMissing, ie.Precedence, err
 			default:
-				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreatePDR
+				return nil, ie.CauseMandatoryIEIncorrect, ie.CreatePDR, err
 			}
 		}
 		farid, err := pdr.FARID()
 		if err != nil {
 			switch err {
 			case io.ErrUnexpectedEOF:
-				return nil, err, ie.CauseInvalidLength, ie.FARID
+				return nil, ie.CauseInvalidLength, ie.FARID, err
 			case ie.ErrIENotFound:
-				return nil, err, ie.CauseMandatoryIEMissing, ie.FARID
+				return nil, ie.CauseMandatoryIEMissing, ie.FARID, err
 			default:
-				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreatePDR
+				return nil, ie.CauseMandatoryIEIncorrect, ie.CreatePDR, err
 			}
 		}
 
@@ -280,7 +280,7 @@ func NewPDRMap(pdrs []*ie.IE) (pdrmap *PDRMap, err error, cause uint8, offending
 			}
 			ohrIE = ie.NewOuterHeaderRemoval(ohr[0], ohr[1])
 		} else if err == io.ErrUnexpectedEOF {
-			return nil, err, ie.CauseInvalidLength, ie.OuterHeaderRemoval
+			return nil, ie.CauseInvalidLength, ie.OuterHeaderRemoval, err
 		}
 
 		err = p.Add(NewPDR(
@@ -291,10 +291,10 @@ func NewPDRMap(pdrs []*ie.IE) (pdrmap *PDRMap, err error, cause uint8, offending
 			ohrIE,
 		))
 		if err != nil {
-			return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreatePDR
+			return nil, ie.CauseMandatoryIEIncorrect, ie.CreatePDR, err
 		}
 	}
-	return &p, nil, 0, 0
+	return &p, 0, 0, nil
 }
 
 func (m *PDRMap) IntoCreatePDR() []*ie.IE {

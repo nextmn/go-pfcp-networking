@@ -42,7 +42,7 @@ func DefaultAssociationSetupRequestHandler(ctx context.Context, msg ReceivedMess
 		return nil, fmt.Errorf("entity.RecoveryTimeStamp() is nil")
 	}
 
-	if _, err := msg.Entity.NewEstablishedPFCPAssociation(m.NodeID); err != nil {
+	if _, err := msg.Entity.NewEstablishedPFCPAssociation(ctx, m.NodeID); err != nil {
 		logrus.WithError(err).Debug("Rejected Association")
 		res := message.NewAssociationSetupResponse(msg.Sequence(), msg.Entity.NodeID(), ie.NewCause(ie.CauseRequestRejected), msg.Entity.RecoveryTimeStamp())
 		return msg.NewResponse(res)
@@ -127,21 +127,21 @@ func DefaultSessionEstablishmentRequestHandler(ctx context.Context, msg Received
 	}
 
 	// create PDRs
-	pdrs, err, cause, offendingie := NewPDRMap(m.CreatePDR)
+	pdrs, cause, offendingie, err := NewPDRMap(m.CreatePDR)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
 		return msg.NewResponse(res)
 	}
 
 	// create FARs
-	fars, err, cause, offendingie := NewFARMap(m.CreateFAR)
+	fars, cause, offendingie, err := NewFARMap(m.CreateFAR)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
 		return msg.NewResponse(res)
 	}
 
 	// create session with PDRs and FARs
-	session, err := association.CreateSession(m.CPFSEID, pdrs, fars)
+	session, err := association.CreateSession(ctx, m.CPFSEID, pdrs, fars)
 	if err != nil {
 		// Send cause(Rule creation/modification failure)
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(ie.CauseRuleCreationModificationFailure))
@@ -219,28 +219,28 @@ func DefaultSessionModificationRequestHandler(ctx context.Context, msg ReceivedM
 	//XXX: CP F-SEID is ignored for the moment
 
 	// create PDRs
-	createpdrs, err, cause, offendingie := NewPDRMap(m.CreatePDR)
+	createpdrs, cause, offendingie, err := NewPDRMap(m.CreatePDR)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
 		return msg.NewResponse(res)
 	}
 
 	// create FARs
-	createfars, err, cause, offendingie := NewFARMap(m.CreateFAR)
+	createfars, cause, offendingie, err := NewFARMap(m.CreateFAR)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
 		return msg.NewResponse(res)
 	}
 
 	// update PDRs
-	updatepdrs, err, cause, offendingie := NewPDRMap(m.UpdatePDR)
+	updatepdrs, cause, offendingie, err := NewPDRMap(m.UpdatePDR)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
 		return msg.NewResponse(res)
 	}
 
 	// update FARs
-	updatefars, err, cause, offendingie := NewFARMapUpdate(m.UpdateFAR)
+	updatefars, cause, offendingie, err := NewFARMapUpdate(m.UpdateFAR)
 	if err != nil {
 		res := message.NewSessionEstablishmentResponse(0, 0, rseid, msg.Sequence(), 0, msg.Entity.NodeID(), ie.NewCause(cause), ie.NewOffendingIE(offendingie))
 		return msg.NewResponse(res)

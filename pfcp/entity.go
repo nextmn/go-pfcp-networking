@@ -184,7 +184,7 @@ func (e *PFCPEntity) GetPFCPAssociation(nid string) (association api.PFCPAssocia
 	return e.associationsMap.Get(nid)
 }
 
-func (e *PFCPEntity) NewEstablishedPFCPAssociation(nodeID *ie.IE) (association api.PFCPAssociationInterface, err error) {
+func (e *PFCPEntity) NewEstablishedPFCPAssociation(ctx context.Context, nodeID *ie.IE) (association api.PFCPAssociationInterface, err error) {
 	peer, err := newPFCPPeerUP(e, nodeID)
 	if err != nil {
 		return nil, err
@@ -199,7 +199,7 @@ func (e *PFCPEntity) NewEstablishedPFCPAssociation(nodeID *ie.IE) (association a
 	if !e.associationsMap.CheckNonExist(nid) {
 		return nil, fmt.Errorf("association already exists")
 	}
-	a, err := peer.NewEstablishedPFCPAssociation()
+	a, err := peer.NewEstablishedPFCPAssociation(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -27,7 +27,7 @@ ctx := context.TODO()
 cpNode := NewPFCPEntityCP(SMF_NODE_ID, SMF_IP_ADDR) // node id can be an IP Address or a FQDN
 go cpNode.ListenAndServeContext(ctx)
 cpNode.WaitReady(ctx)
-association, _ := cpNode.NewEstablishedPFCPAssociation(ie.NewNodeIDHeuristic(UPFADDR))
+association, _ := cpNode.NewEstablishedPFCPAssociation(ctx, ie.NewNodeIDHeuristic(UPFADDR))
 session, _ := a.CreateSession(pdrs, fars)
 
 ```

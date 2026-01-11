@@ -37,8 +37,8 @@ type PFCPPeer struct {
 	kind    string
 }
 
-func (peer *PFCPPeer) NewEstablishedPFCPAssociation() (api.PFCPAssociationInterface, error) {
-	return newEstablishedPFCPAssociation(peer)
+func (peer *PFCPPeer) NewEstablishedPFCPAssociation(ctx context.Context) (api.PFCPAssociationInterface, error) {
+	return newEstablishedPFCPAssociation(ctx, peer)
 }
 
 func (peer *PFCPPeer) LocalEntity() api.PFCPEntityInterface {
@@ -86,9 +86,6 @@ func newPFCPPeer(srv api.PFCPEntityInterface, nodeID *ie.IE, kind string) (peer 
 
 func newPFCPPeerUP(srv api.PFCPEntityInterface, nodeID *ie.IE) (peer *PFCPPeer, err error) {
 	return newPFCPPeer(srv, nodeID, "UP")
-}
-func newPFCPPeerCP(srv api.PFCPEntityInterface, nodeID *ie.IE) (peer *PFCPPeer, err error) {
-	return newPFCPPeer(srv, nodeID, "CP")
 }
 
 func (peer *PFCPPeer) IsUserPlane() bool {

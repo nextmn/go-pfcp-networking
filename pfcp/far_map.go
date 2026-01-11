@@ -129,7 +129,7 @@ func (m *FARMap) NewCreateFARs() []*ie.IE {
 	return f
 }
 
-func NewFARMap(fars []*ie.IE) (farmap *FARMap, err error, cause uint8, offendingIE uint16) {
+func NewFARMap(fars []*ie.IE) (farmap *FARMap, cause uint8, offendingIE uint16, err error) {
 	f := FARMap{
 		farmap: make(farmapInternal),
 		mu:     sync.RWMutex{},
@@ -139,22 +139,22 @@ func NewFARMap(fars []*ie.IE) (farmap *FARMap, err error, cause uint8, offending
 		if err != nil {
 			switch err {
 			case io.ErrUnexpectedEOF:
-				return nil, err, ie.CauseInvalidLength, ie.FARID
+				return nil, ie.CauseInvalidLength, ie.FARID, err
 			case ie.ErrIENotFound:
-				return nil, err, ie.CauseMandatoryIEMissing, ie.FARID
+				return nil, ie.CauseMandatoryIEMissing, ie.FARID, err
 			default:
-				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreateFAR
+				return nil, ie.CauseMandatoryIEIncorrect, ie.CreateFAR, err
 			}
 		}
 		aa, err := far.ApplyAction()
 		if err != nil {
 			switch err {
 			case io.ErrUnexpectedEOF:
-				return nil, err, ie.CauseInvalidLength, ie.ApplyAction
+				return nil, ie.CauseInvalidLength, ie.ApplyAction, err
 			case ie.ErrIENotFound:
-				return nil, err, ie.CauseMandatoryIEMissing, ie.ApplyAction
+				return nil, ie.CauseMandatoryIEMissing, ie.ApplyAction, err
 			default:
-				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreateFAR
+				return nil, ie.CauseMandatoryIEIncorrect, ie.CreateFAR, err
 			}
 		}
 
@@ -170,7 +170,7 @@ func NewFARMap(fars []*ie.IE) (farmap *FARMap, err error, cause uint8, offending
 			hasFP = true
 		}
 		if mustHaveFP && !hasFP {
-			return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreateFAR
+			return nil, ie.CauseMandatoryIEIncorrect, ie.CreateFAR, err
 		}
 
 		if !hasFP {
@@ -179,10 +179,10 @@ func NewFARMap(fars []*ie.IE) (farmap *FARMap, err error, cause uint8, offending
 			err = f.Add(NewFAR(ie.NewFARID(id), ie.NewApplyAction(aa...), ie.NewForwardingParameters(fp...)))
 		}
 		if err != nil {
-			return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreateFAR
+			return nil, ie.CauseMandatoryIEIncorrect, ie.CreateFAR, err
 		}
 	}
-	return &f, nil, 0, 0
+	return &f, 0, 0, nil
 
 }
 

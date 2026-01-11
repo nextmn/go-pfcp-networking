@@ -22,7 +22,7 @@ type FARMapUpdate struct {
 	mu     sync.RWMutex
 }
 
-func NewFARMapUpdate(fars []*ie.IE) (*FARMapUpdate, error, uint8, uint16) {
+func NewFARMapUpdate(fars []*ie.IE) (*FARMapUpdate, uint8, uint16, error) {
 	f := FARMapUpdate{
 		farmap: make(farmapUpdateInternal),
 		mu:     sync.RWMutex{},
@@ -32,11 +32,11 @@ func NewFARMapUpdate(fars []*ie.IE) (*FARMapUpdate, error, uint8, uint16) {
 		if err != nil {
 			switch err {
 			case io.ErrUnexpectedEOF:
-				return nil, err, ie.CauseInvalidLength, ie.FARID
+				return nil, ie.CauseInvalidLength, ie.FARID, err
 			case ie.ErrIENotFound:
-				return nil, err, ie.CauseMandatoryIEMissing, ie.FARID
+				return nil, ie.CauseMandatoryIEMissing, ie.FARID, err
 			default:
-				return nil, err, ie.CauseMandatoryIEIncorrect, ie.CreateFAR
+				return nil, ie.CauseMandatoryIEIncorrect, ie.CreateFAR, err
 			}
 		}
 		var ieaa *ie.IE = nil
@@ -51,7 +51,7 @@ func NewFARMapUpdate(fars []*ie.IE) (*FARMapUpdate, error, uint8, uint16) {
 		}
 		f.Add(NewFARUpdate(ie.NewFARID(id), ieaa, iefp))
 	}
-	return &f, nil, 0, 0
+	return &f, 0, 0, nil
 
 }
 

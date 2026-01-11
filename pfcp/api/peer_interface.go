@@ -6,6 +6,8 @@
 package api
 
 import (
+	"context"
+
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -19,5 +21,5 @@ type PFCPPeerInterface interface {
 	IsUserPlane() bool
 	IsControlPlane() bool
 	LocalEntity() PFCPEntityInterface
-	NewEstablishedPFCPAssociation() (PFCPAssociationInterface, error)
+	NewEstablishedPFCPAssociation(ctx context.Context) (PFCPAssociationInterface, error)
 }

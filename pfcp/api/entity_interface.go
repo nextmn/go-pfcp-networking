@@ -18,7 +18,7 @@ type PFCPEntityInterface interface {
 	IsControlPlane() bool
 	NodeID() *ie.IE
 	RecoveryTimeStamp() *ie.IE
-	NewEstablishedPFCPAssociation(nodeID *ie.IE) (association PFCPAssociationInterface, err error)
+	NewEstablishedPFCPAssociation(ctx context.Context, nodeID *ie.IE) (association PFCPAssociationInterface, err error)
 	RemovePFCPAssociation(association PFCPAssociationInterface) error
 	GetPFCPAssociation(nid string) (association PFCPAssociationInterface, err error)
 	GetPFCPSessions() []PFCPSessionInterface

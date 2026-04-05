@@ -12,7 +12,7 @@
 ```golang
 ctx := context.TODO()
 upNode := NewPFCPEntityUP(UPF_NODE_ID, UPF_IP_ADDR) // node id can be an IP Address or a FQDN
-go upNode.ListenAndServeContext(ctx)
+go upNode.ListenAndServe(ctx)
 upnode.WaitReady(ctx)
 // Access list of associations
 associations := upNode.GetPFCPAssociations()
@@ -25,7 +25,7 @@ sessions := upNode.GetPFCPSessions()
 ```golang
 ctx := context.TODO()
 cpNode := NewPFCPEntityCP(SMF_NODE_ID, SMF_IP_ADDR) // node id can be an IP Address or a FQDN
-go cpNode.ListenAndServeContext(ctx)
+go cpNode.ListenAndServe(ctx)
 cpNode.WaitReady(ctx)
 association, _ := cpNode.NewEstablishedPFCPAssociation(ctx, ie.NewNodeIDHeuristic(UPFADDR))
 session, _ := a.CreateSession(pdrs, fars)

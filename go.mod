@@ -1,10 +1,10 @@
 module github.com/nextmn/go-pfcp-networking
 
-go 1.25.5
+go 1.26.1
 
 require (
 	github.com/sirupsen/logrus v1.9.4
 	github.com/wmnsk/go-pfcp v0.0.24
 )
 
-require golang.org/x/sys v0.24.0 // indirect
+require golang.org/x/sys v0.42.0 // indirect

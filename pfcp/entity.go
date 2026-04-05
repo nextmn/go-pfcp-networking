@@ -212,13 +212,16 @@ func (e *PFCPEntity) NewEstablishedPFCPAssociation(ctx context.Context, nodeID *
 
 // Listen PFCP and run the entity with the provided context.
 // Always return a non-nil error.
-func (e *PFCPEntity) ListenAndServe() error {
-	return e.ListenAndServeContext(context.Background())
+// Deprecated: use [ListenAndServe]
+//
+//go:fix inline
+func (e *PFCPEntity) ListenAndServeContext(ctx context.Context) error {
+	return e.ListenAndServeContext(ctx)
 }
 
 // Listen PFCP and run the entity with the provided context.
 // Always return a non-nil error.
-func (e *PFCPEntity) ListenAndServeContext(ctx context.Context) error {
+func (e *PFCPEntity) ListenAndServe(ctx context.Context) error {
 	// TODO: listen on both ipv4 and ipv6
 	if conn, err := ListenPFCP("udp", e.listenAddr); err != nil {
 		return err

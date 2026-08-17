@@ -3,7 +3,7 @@ module github.com/nextmn/go-pfcp-networking
 go 1.26.1
 
 require (
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.0
 	github.com/wmnsk/go-pfcp v0.0.24
 )
 

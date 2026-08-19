@@ -8,15 +8,16 @@ package pfcp_networking
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/netip"
 	"sync"
 	"time"
 
+	"github.com/nextmn/go-pfcp-networking/internal/loglevel"
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
 	"github.com/nextmn/go-pfcp-networking/pfcputil"
 
-	"github.com/sirupsen/logrus"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -119,6 +120,7 @@ func (peer *PFCPPeer) loopUnwrapped() {
 		return
 	}
 	// Processing of message in a new thread to avoid blocking
+	// FIXME: add a Context
 	go func(msgArray []byte, size int, e *PFCPPeer) {
 		msg, err := message.ParseHeader(msgArray[:size])
 		if err != nil {
@@ -131,13 +133,15 @@ func (peer *PFCPPeer) loopUnwrapped() {
 		ch, exists := e.queue[sn]
 		if exists {
 			ch <- msgArray[:size]
-			logrus.WithFields(logrus.Fields{
-				"sn": sn,
-			}).Debug("Received new PFCP Response")
+			slog.Debug("Received new PFCP Response",
+				"error", err,
+				"sn", sn,
+			)
 		} else {
-			logrus.WithFields(logrus.Fields{
-				"sn": sn,
-			}).Debug("Received new PFCP Response but Sequence Number is not matching")
+			slog.Debug("Received new PFCP Response but Sequence Number is not matching",
+				"error", err,
+				"sn", sn,
+			)
 		}
 	}(b, n, peer)
 }
@@ -222,13 +226,14 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 		return nil, fmt.Errorf("error on write: %w", err)
 	}
 
+	// FIXME: add a Context
 	for i := 0; i < peer.LocalEntity().Options().MessageRetransmissionN1(); i++ {
-		logrus.WithFields(logrus.Fields{
-			"sn":  sn,
-			"t1":  peer.LocalEntity().Options().MessageRetransmissionT1(),
-			"n1":  peer.LocalEntity().Options().MessageRetransmissionN1(),
-			"try": i,
-		}).Trace("Sending new PFCP request")
+		slog.Log(context.TODO(), loglevel.Trace, "Sending new PFCP request",
+			"sn", sn,
+			"t1", peer.LocalEntity().Options().MessageRetransmissionT1(),
+			"n1", peer.LocalEntity().Options().MessageRetransmissionN1(),
+			"try", i,
+		)
 		select {
 		case r := <-ch:
 			msg, err := message.Parse(r)
@@ -247,11 +252,11 @@ func (peer *PFCPPeer) Send(msg message.Message) (m message.Message, err error) {
 			}
 		}
 	}
-	logrus.WithFields(logrus.Fields{
-		"sn": sn,
-		"t1": peer.LocalEntity().Options().MessageRetransmissionT1(),
-		"n1": peer.LocalEntity().Options().MessageRetransmissionN1(),
-	}).Trace("No response to PFCP request")
+	slog.Log(context.TODO(), loglevel.Trace, "No response to PFCP request",
+		"sn", sn,
+		"t1", peer.LocalEntity().Options().MessageRetransmissionT1(),
+		"n1", peer.LocalEntity().Options().MessageRetransmissionN1(),
+	)
 	return nil, fmt.Errorf("unsuccessful transfer of Request message")
 }
 

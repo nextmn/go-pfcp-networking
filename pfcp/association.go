@@ -8,11 +8,11 @@ package pfcp_networking
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"time"
 
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
-	"github.com/sirupsen/logrus"
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -74,7 +74,9 @@ func (association *PFCPAssociation) SetupInitiatedByCP(ctx context.Context) erro
 		}
 		asres, ok := resp.(*message.AssociationSetupResponse)
 		if !ok {
-			logrus.WithFields(logrus.Fields{"message-type": resp.MessageTypeName()}).Debug("Got unexpected message")
+			slog.DebugContext(ctx, "Got unexpected message",
+				"message-type", resp.MessageTypeName(),
+			)
 		}
 		cause, err := asres.Cause.Cause()
 		if err != nil {

@@ -6,10 +6,10 @@
 package pfcp_networking
 
 import (
+	"log/slog"
 	"sync"
 
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
-	"github.com/sirupsen/logrus"
 )
 
 // SessionIDPool is a generator of session IDs
@@ -28,10 +28,12 @@ func NewSessionIDPool() *SessionIDPool {
 
 // Get next id available in SessionIDPool
 func (pool *SessionIDPool) GetNext() api.SEID {
+	//FIXME: add a Context
+	// XXX: make session ID non-predictable?
 	pool.muSessionID.Lock()
 	defer pool.muSessionID.Unlock()
 	id := pool.currentSessionID
 	pool.currentSessionID = id + 1
-	logrus.WithFields(logrus.Fields{"next-session-id": id}).Debug("Returning next Session ID")
+	slog.Debug("Returning next Session ID", "next-session-id", id)
 	return id
 }

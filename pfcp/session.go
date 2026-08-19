@@ -7,11 +7,12 @@ package pfcp_networking
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"sync"
 
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
-	"github.com/sirupsen/logrus"
+
 	"github.com/wmnsk/go-pfcp/ie"
 	"github.com/wmnsk/go-pfcp/message"
 )
@@ -266,6 +267,7 @@ func (s *PFCPSession) AddUpdatePDRsFARs(createpdrs api.PDRMapInterface, createfa
 // or by doing nothing particular (if UP function) since
 // the PFCP Session Establishment Procedure is already performed
 func (s *PFCPSession) Setup() error {
+	// FIXME: add Context
 	if s.isEstablished {
 		return fmt.Errorf("session is already established")
 	}
@@ -296,7 +298,7 @@ func (s *PFCPSession) Setup() error {
 		}
 		ser, ok := resp.(*message.SessionEstablishmentResponse)
 		if !ok {
-			logrus.WithFields(logrus.Fields{"message-type": resp.MessageTypeName()}).Debug("got unexpected message")
+			slog.Debug("Got unexpected message", "message-type", resp.MessageTypeName())
 		}
 
 		remoteFseidFields, err := ser.UPFSEID.FSEID()
@@ -309,5 +311,4 @@ func (s *PFCPSession) Setup() error {
 	default:
 		return fmt.Errorf("local PFCP entity is not a CP or a UP function")
 	}
-	return nil
 }

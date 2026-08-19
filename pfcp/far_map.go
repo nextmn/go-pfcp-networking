@@ -6,12 +6,15 @@
 package pfcp_networking
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"sync"
 
+	"github.com/nextmn/go-pfcp-networking/internal/loglevel"
 	"github.com/nextmn/go-pfcp-networking/pfcp/api"
-	"github.com/sirupsen/logrus"
+
 	"github.com/wmnsk/go-pfcp/ie"
 )
 
@@ -69,7 +72,8 @@ func (m *FARMap) SimulateAdd(far api.FARInterface) error {
 }
 
 func (m *FARMap) Update(farUpdate api.FARUpdateInterface) error {
-	logrus.Trace("Inside farmap.Update()")
+	// FIXME: add Context
+	slog.Log(context.TODO(), loglevel.Trace, "Inside farmap.Update()")
 	// only present fields are replaced
 	id, err := farUpdate.ID()
 	if err != nil {
@@ -78,16 +82,20 @@ func (m *FARMap) Update(farUpdate api.FARUpdateInterface) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if far, exists := m.farmap[id]; !exists {
-		logrus.WithFields(logrus.Fields{"far-id": id, "current_map": m.farmap}).Trace("Updating FAR: this FAR id does not exist")
+		slog.Log(context.TODO(), loglevel.Trace, "Updating FAR: this FAR id does not exist",
+			"far-id", id,
+			"current-map", m.farmap,
+		)
 		return fmt.Errorf("FAR %d does not exist", id)
 	} else {
-		logrus.WithFields(logrus.Fields{"far-id": id}).Trace("Updating FAR")
+		slog.Log(context.TODO(), loglevel.Trace, "Updating FAR", "far-id", id)
 		return far.Update(farUpdate)
 	}
 }
 
 func (m *FARMap) SimulateUpdate(far api.FARUpdateInterface) error {
-	logrus.Trace("Inside farmap.SimulateUpdate()")
+	// FIXME: add Context
+	slog.Log(context.TODO(), loglevel.Trace, "Inside farmap.SimulateUpdate()")
 	id, err := far.ID()
 	if err != nil {
 		return err
@@ -95,10 +103,16 @@ func (m *FARMap) SimulateUpdate(far api.FARUpdateInterface) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if _, exists := m.farmap[id]; !exists {
-		logrus.WithFields(logrus.Fields{"far-id": id, "current_map": m.farmap}).Trace("Simulate Updating FAR: this FAR id does not exist")
+		slog.Log(context.TODO(), loglevel.Trace, "Simulate updating FAR: this FAR id does not exist",
+			"far-id", id,
+			"current-map", m.farmap,
+		)
 		return fmt.Errorf("FAR %d does not exist", id)
 	}
-	logrus.WithFields(logrus.Fields{"far-id": id, "current_map": m.farmap}).Trace("Simulate Updating FAR: exist")
+	slog.Log(context.TODO(), loglevel.Trace, "Simulate updating FAR",
+		"far-id", id,
+		"current-map", m.farmap,
+	)
 	return nil
 }
 func (m *FARMap) Remove(key api.FARID) error {

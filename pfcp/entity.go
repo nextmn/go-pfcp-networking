@@ -254,39 +254,34 @@ func (e *PFCPEntity) Serve(ctx context.Context, conn *PFCPConn) error {
 	e.recoveryTimeStamp = ie.NewRecoveryTimeStamp(time.Now())
 	close(e.waitReady)
 	for {
-		select {
-		case <-serveCtx.Done():
-			// Stop signal received
-			return serveCtx.Err()
-		default:
-			buf := make([]byte, pfcputil.DEFAULT_MTU) // TODO: get MTU of interface instead of using DEFAULT_MTU
-			if n, addr, err := conn.ReadFrom(buf); err == nil {
-				go func(ctx context.Context, buffer []byte, sender net.Addr) {
-					msg, err := message.Parse(buffer)
-					if err != nil {
-						slog.DebugContext(serveCtx, "Undecodable PFCP message", "error", err)
+		if err := serveCtx.Err(); err != nil {
+			return err
+		}
+		buf := make([]byte, pfcputil.DEFAULT_MTU) // TODO: get MTU of interface instead of using DEFAULT_MTU
+		if n, addr, err := conn.ReadFrom(buf); err == nil {
+			go func(ctx context.Context, buffer []byte, sender net.Addr) {
+				msg, err := message.Parse(buffer)
+				if err != nil {
+					slog.DebugContext(serveCtx, "Undecodable PFCP message", "error", err)
+					return
+				}
+				f, err := e.GetHandler(msg.MessageType())
+				if err != nil {
+					slog.DebugContext(serveCtx, "No Handler for message of this type",
+						"error", err,
+						"message-type", msg.MessageType,
+					)
+					return
+				}
+				if resp, err := f(ctx, ReceivedMessage{Message: msg, SenderAddr: addr, Entity: e}); err != nil {
+					slog.DebugContext(serveCtx, "Handler raised an error", "error", err)
+				} else {
+					if err := ctx.Err(); err != nil {
 						return
 					}
-					f, err := e.GetHandler(msg.MessageType())
-					if err != nil {
-						slog.DebugContext(serveCtx, "No Handler for message of this type",
-							"error", err,
-							"message-type", msg.MessageType,
-						)
-						return
-					}
-					if resp, err := f(ctx, ReceivedMessage{Message: msg, SenderAddr: addr, Entity: e}); err != nil {
-						slog.DebugContext(serveCtx, "Handler raised an error", "error", err)
-					} else {
-						select {
-						case <-ctx.Done():
-							return
-						default:
-							conn.Write(resp)
-						}
-					}
-				}(serveCtx, buf[:n], addr)
-			}
+					conn.Write(resp)
+				}
+			}(serveCtx, buf[:n], addr)
 		}
 	}
 }

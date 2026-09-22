@@ -127,6 +127,10 @@ func NewPFCPEntity(nodeID string, listenAddr netip.Addr, kind string, handlers m
 	if handlers == nil {
 		handlers = newDefaultPFCPEntityHandlers()
 	}
+	var opts entityOptions
+	for _, f := range opt {
+		f(&opts)
+	}
 
 	return PFCPEntity{
 		nodeID:            ie.NewNodeIDHeuristic(nodeID),
@@ -136,7 +140,7 @@ func NewPFCPEntity(nodeID string, listenAddr netip.Addr, kind string, handlers m
 		associationsMap:   NewAssociationsMap(),
 		sessionsMap:       NewSessionsMap(),
 		kind:              kind,
-		options:           entityOptionList(opt).Options(),
+		options:           opts,
 		pfcpConns:         nil,
 		waitReady:         make(chan struct{}),
 	}

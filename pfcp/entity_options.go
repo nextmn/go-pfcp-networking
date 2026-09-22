@@ -6,51 +6,60 @@
 package pfcp_networking
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/nextmn/go-pfcp-networking/pfcputil"
 )
 
-type EntityOptions struct {
+type entityOption func(*entityOptions) entityOption
+
+type entityOptionList []entityOption
+
+func (o entityOptionList) Options() entityOptions {
+	opts := entityOptions{}
+	for _, f := range o {
+		f(&opts)
+	}
+	return opts
+}
+
+type entityOptions struct {
 	messageRetransmissionT1 time.Duration
 	messageRetransmissionN1 int
 }
 
-// NewEntityOptions create a new EntityOptions with default settings.
-func NewEntityOptions() *EntityOptions {
-	return &EntityOptions{
-		messageRetransmissionT1: pfcputil.MESSAGE_RETRANSMISSION_T1,
-		messageRetransmissionN1: pfcputil.MESSAGE_RETRANSMISSION_N1,
-	}
-}
-
-func (eo EntityOptions) MessageRetransmissionT1() time.Duration {
+func (eo entityOptions) MessageRetransmissionT1() time.Duration {
 	if eo.messageRetransmissionT1 == 0 {
 		return pfcputil.MESSAGE_RETRANSMISSION_T1
 	}
 	return eo.messageRetransmissionT1
 }
 
-func (eo *EntityOptions) SetMessageRetransmissionT1(messageRetransmissionT1 time.Duration) error {
-	if messageRetransmissionT1 < 1*time.Microsecond {
-		return fmt.Errorf("messageRetransmissionT1 must be strictly greater than zero")
+func OptionMessageRetransmissionT1(messageRetransmissionT1 time.Duration) entityOption {
+	return func(eo *entityOptions) entityOption {
+		if messageRetransmissionT1 < 0 {
+			panic("messageRetransmissionT1 must be positive")
+		}
+		previous := eo.messageRetransmissionT1
+		eo.messageRetransmissionT1 = messageRetransmissionT1
+		return OptionMessageRetransmissionT1(previous)
 	}
-	eo.messageRetransmissionT1 = messageRetransmissionT1
-	return nil
 }
 
-func (eo EntityOptions) MessageRetransmissionN1() int {
+func (eo entityOptions) MessageRetransmissionN1() int {
 	if eo.messageRetransmissionN1 == 0 {
 		return pfcputil.MESSAGE_RETRANSMISSION_N1
 	}
 	return eo.messageRetransmissionN1
 }
 
-func (eo *EntityOptions) SetMessageRetransmissionN1(messageRetransmissionN1 int) error {
-	if messageRetransmissionN1 < 0 {
-		return fmt.Errorf("messageRetransmissionN1 must be greater than zero")
+func OptionMessageRetransmissionN1(messageRetransmissionN1 int) entityOption {
+	return func(eo *entityOptions) entityOption {
+		if messageRetransmissionN1 < 0 {
+			panic("messageRetransmissionN1 must be positive")
+		}
+		previous := eo.messageRetransmissionN1
+		eo.messageRetransmissionN1 = messageRetransmissionN1
+		return OptionMessageRetransmissionN1(previous)
 	}
-	eo.messageRetransmissionN1 = messageRetransmissionN1
-	return nil
 }

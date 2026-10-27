@@ -215,7 +215,7 @@ func (e *PFCPEntity) NewEstablishedPFCPAssociation(ctx context.Context, nodeID *
 //
 //go:fix inline
 func (e *PFCPEntity) ListenAndServeContext(ctx context.Context) error {
-	return e.ListenAndServeContext(ctx)
+	return e.ListenAndServe(ctx)
 }
 
 // Listen PFCP and run the entity with the provided context.
